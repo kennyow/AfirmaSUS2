@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from importlib import import_module
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -12,6 +13,7 @@ from core.models import EscalaTrabalho
 
 
 midias_views = import_module('core.views.midias')
+management_views = import_module('core.views.management_views')
 
 
 class LinhaDoTempoMidiasTests(TestCase):
@@ -158,6 +160,13 @@ class LinhaDoTempoMidiasTests(TestCase):
 
 class EscalaTrabalhoTests(TestCase):
     def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.calendario_path = Path(self.temp_dir.name) / 'calendario.json'
+        self.calendario_path.write_text('[]', encoding='utf-8')
+        calendario_patcher = patch.object(management_views, 'CALENDARIO_PATH', self.calendario_path)
+        calendario_patcher.start()
+        self.addCleanup(calendario_patcher.stop)
         usuario = get_user_model().objects.create_user(username='editor', password='senha-segura')
         self.client.force_login(usuario)
         self.escala = EscalaTrabalho.objects.create(
@@ -195,3 +204,28 @@ class EscalaTrabalhoTests(TestCase):
         self.assertContains(resposta, 'class="badge bg-primary me-1">Tarde</span>')
         self.assertContains(resposta, 'class="badge bg-dark me-1">Noite</span>')
         self.assertContains(resposta, 'class="badge bg-success me-1">Integral</span>')
+
+    def test_calendario_carrega_eventos_do_arquivo_json(self):
+        eventos = [{
+            'title': 'Atividade de teste',
+            'start': '2026-10-12',
+            'end': '2026-10-12',
+            'backgroundColor': '#4C2059',
+            'description': 'Detalhes do evento.',
+        }]
+        with tempfile.TemporaryDirectory() as diretorio:
+            caminho_calendario = os.path.join(diretorio, 'calendario.json')
+            with open(caminho_calendario, 'w', encoding='utf-8') as arquivo:
+                json.dump(eventos, arquivo)
+
+            with patch.object(management_views, 'CALENDARIO_PATH', Path(caminho_calendario)):
+                resposta = self.client.get(reverse('pagina_escala'))
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.context['calendario_eventos'][0]['title'], 'Atividade de teste')
+        self.assertEqual(
+            resposta.context['calendario_eventos'][0]['extendedProps']['description'],
+            'Detalhes do evento.',
+        )
+        self.assertNotIn('end', resposta.context['calendario_eventos'][0])
+        self.assertContains(resposta, 'activities-calendar')
