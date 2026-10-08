@@ -1,0 +1,176 @@
+[
+  {
+    "id": "nota-f5b248b2-4cdd-40d3-a743-591f9428c2d0",
+    "title": "Reunião de Emergência",
+    "start": "2026-10-07",
+    "description": "Decisão Brasília"
+  },
+  {
+    "id": "evento-importado-calendario-001",
+    "title": "Oficina de Cartografia Comunitária",
+    "start": "2026-04-10",
+    "end": "2026-04-10",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#FF8C00",
+    "textColor": "#ffffff"
+  },
+  {
+    "id": "evento-importado-calendario-002",
+    "title": "Visita Técnica - Comunidade São Rafael",
+    "start": "2026-04-18",
+    "end": "2026-04-18",
+    "backgroundColor": "#28A745",
+    "borderColor": "#28A745",
+    "textColor": "#ffffff"
+  },
+  {
+    "id": "evento-importado-calendario-003",
+    "title": "Reunião de Pauta",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Voltamos ao sofrimento."
+  },
+  {
+    "id": "evento-importado-calendario-004",
+    "title": "Recepção ao Coordenador Geral AfirmaSUS-JP",
+    "start": "2026-09-03",
+    "end": "2026-09-03",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#FF8C00",
+    "textColor": "#ffffff",
+    "description": "8h - visita ao Território e UBS da comunidade São Rafael. // 10h - Encontro Geral e Apresentação do Projeto Afirmações JampaSUS. // 11h - Momento com Corpo Discente do AfirAções JampaSUS. // 12h - Almoço. // 13h - Momento com Corpo Docente do AfirAções JampaSUS. // 14:30h - Momento com a CLAA, Pró-Reitoria da PRAPE e PROEXT e GES/SMS // 16h - Devolutiva do Ministério da Saúde com Grupo AfirmAções JampaSUS."
+  },
+  {
+    "id": "evento-importado-calendario-005",
+    "title": "Reunião de Pauta",
+    "start": "2026-09-07",
+    "end": "2026-09-07",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Mais um dia sem bolsa."
+  },
+  {
+    "id": "evento-importado-calendario-006",
+    "title": "Finalização dos Slides da Apresentação Nacional",
+    "start": "2026-08-18",
+    "end": "2026-08-18",
+    "backgroundColor": "#F05763",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Thayane, Kennyo, Alex."
+  },
+  {
+    "id": "evento-importado-calendario-007",
+    "title": "Consulta de ingresso de novos estudantes",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#F05763",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Alex: Enviar Google Forms para os estudantes aprovados na seleção para saber se querem ser voluntários."
+  },
+  {
+    "id": "evento-importado-calendario-008",
+    "title": "Realização de Cursos Complementares",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Correspondente a carga horária do recesso. Plataforma AVASUS, FioCRUZ. Certificado comprovará as horas."
+  },
+  {
+    "id": "evento-importado-calendario-009",
+    "title": "Conclusão dos Relatórios dos Subgrupos do 1º Encontro Comunitário de Saúde",
+    "start": "2026-09-07",
+    "end": "2026-09-07",
+    "backgroundColor": "#F05763",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Myrela, Álvaro e Alex."
+  },
+  {
+    "id": "evento-importado-calendario-010",
+    "title": "Documentário Grupo Viva Vida",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Início da Produção. Convocação de parceiros do grupo."
+  },
+  {
+    "id": "evento-importado-calendario-011",
+    "title": "Passeio na Bica Grupo Viva Vida",
+    "start": "2026-09-10",
+    "end": "2026-09-10",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Passeio na Bica do Grupo Viva Vida em alusão ao setembro amarelo"
+  },
+  {
+    "id": "evento-importado-calendario-012",
+    "title": "Reunião de Pauta",
+    "start": "2026-09-11",
+    "end": "2026-09-11",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Roda de Afirmações para definir estratégias de atuação do AfirmaSUS-JP no território em relação ao Bolsa Família, com a participação dos integrantes do programa."
+  },
+  {
+    "id": "evento-importado-calendario-013",
+    "title": "Reunião de Pauta",
+    "start": "2026-09-18",
+    "end": "2026-09-18",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Devolutiva do Levantamento das Microáreas da Fernanda e Ismael. \n\nEncontro Unificado ENID - ENEX 2026 ( o que é e o que vamos escrever)\n\nAtualização do Geoprocessamento\n\nProposta de Formação/Ensino e Próximos Temas"
+  },
+  {
+    "id": "evento-importado-calendario-014",
+    "title": "Reunião de Pauta",
+    "start": "2026-09-25",
+    "end": "2026-09-25",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "**Reorganização das Frentes:** \n\n - Frente de Pesquisa  -- **Jéssica**, Marlon, Alex, Lucas, **Gabi**, Kayllane, Edna\n\n - Frente de Comunicação e Cultura -- Myrela, Emiliany, **Laura**, Ûgor \n\n - Frente de Ensino -- Edna, Mailson, Lucas, **Myrela**, Emiliany, Thayane, Laura \n\n - Frente de CoGestão -- Jéssica, **Kayllane**, Kennyo, Emiliany, Álvaro \n\n - Frente de Ciência e Tecnologia -- Álvaro, Lucas, **Kennyo** \n\n Formação **Como Transformar Qualquer Vivência em Relato de Experiência** \n\n"
+  },
+  {
+    "id": "evento-importado-calendario-015",
+    "title": "Inscrição no Curso de Educação Popular em Saúde",
+    "start": "2026-09-28",
+    "end": "2026-09-28",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": ""
+  },
+  {
+    "id": "evento-importado-calendario-016",
+    "title": "Frente de Pesquisa Resumos ENEX 2026",
+    "start": "2026-09-29",
+    "end": "2026-09-29",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": ""
+  },
+  {
+    "id": "evento-importado-calendario-017",
+    "title": "Reunião de Pauta",
+    "start": "2026-09-30",
+    "end": "2026-09-30",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Convidado Lucas. "
+  }
+]
