@@ -1,0 +1,234 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Mídias - AfirmaSUS-JP{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="mb-4">
+        <h3 class="fw-bold text-dark mb-1">🖼️ Mídias</h3>
+        <p class="text-muted m-0">Gerencie as atividades exibidas na Linha do Tempo da página de apresentação.</p>
+    </div>
+
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-3">
+            <h4 class="fw-bold text-primary m-0">🗓️ Linha do Tempo de Atividades</h4>
+            {% if user.is_authenticated and atividades_timeline %}
+            <button class="btn btn-outline-danger btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalRemoverAtividade">
+                Gerenciar remoções
+            </button>
+            {% endif %}
+        </div>
+
+        {% if user.is_authenticated %}
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold text-dark mb-1">Adicionar à Linha do Tempo</h5>
+                <p class="text-muted small mb-0">Preencha os dados da atividade e adicione um ou mais links de imagens.</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form action="{% url 'adicionar_midia' 'timeline' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="timeline-data" class="form-label">Data</label>
+                            <input id="timeline-data" type="text" name="data" class="form-control" placeholder="Ex.: Setembro / 2026" required>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="timeline-titulo" class="form-label">Título</label>
+                            <input id="timeline-titulo" type="text" name="titulo" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="timeline-categoria" class="form-label">Categoria</label>
+                            <input id="timeline-categoria" type="text" name="categoria" class="form-control" placeholder="Ex.: Saúde, Cultura ou Educação" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="timeline-cor" class="form-label">Cor da borda</label>
+                            <input id="timeline-cor" type="color" name="cor_borda" class="form-control form-control-color" value="#17A2B8" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="timeline-descricao" class="form-label">Descrição</label>
+                            <textarea id="timeline-descricao" name="descricao" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Links das imagens</label>
+                            <div id="timeline-fotos">
+                                <div class="input-group mb-2 timeline-foto-item">
+                                    <input type="url" name="fotos" class="form-control" placeholder="https://...">
+                                    <button type="button" class="btn btn-outline-danger" data-remove-foto aria-label="Remover link da imagem">Remover</button>
+                                </div>
+                            </div>
+                            <button type="button" id="adicionar-foto-timeline" class="btn btn-outline-secondary btn-sm">+ Adicionar outra imagem</button>
+                        </div>
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="submit" class="btn btn-success fw-bold">Salvar atividade</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not atividades_timeline %}
+        <p class="text-muted">Nenhuma atividade cadastrada na Linha do Tempo.</p>
+        {% endif %}
+    </section>
+
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3 gap-3">
+            <h4 class="fw-bold text-primary m-0">📜 Linha do Tempo Dinâmica</h4>
+            {% if user.is_authenticated and eventos_timeline_dinamica %}
+            <button class="btn btn-outline-danger btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalRemoverEventoDinamico">
+                Gerenciar remoções
+            </button>
+            {% endif %}
+        </div>
+        <p class="text-muted">Eventos registrados no formato TimelineJS e exibidos na apresentação.</p>
+
+        {% if user.is_authenticated %}
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold text-dark mb-1">Adicionar à Linha do Tempo Dinâmica</h5>
+                <p class="text-muted small mb-0">Preencha os campos do evento conforme <code>linhadotempodinamica.json</code>.</p>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form action="{% url 'adicionar_midia' 'timeline_dinamica' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-sm-4">
+                            <label for="dinamica-year" class="form-label">Ano</label>
+                            <input id="dinamica-year" type="number" name="year" class="form-control" min="1" max="9999" required>
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="dinamica-month" class="form-label">Mês</label>
+                            <input id="dinamica-month" type="number" name="month" class="form-control" min="1" max="12" required>
+                        </div>
+                        <div class="col-sm-4">
+                            <label for="dinamica-day" class="form-label">Dia</label>
+                            <input id="dinamica-day" type="number" name="day" class="form-control" min="1" max="31" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dinamica-headline" class="form-label">Título do evento</label>
+                            <input id="dinamica-headline" type="text" name="titulo" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dinamica-group" class="form-label">Grupo</label>
+                            <input id="dinamica-group" type="text" name="group" class="form-control" placeholder="Ex.: Eventos" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="dinamica-text" class="form-label">Descrição</label>
+                            <textarea id="dinamica-text" name="descricao" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="dinamica-media-url" class="form-label">Link da mídia (opcional)</label>
+                            <input id="dinamica-media-url" type="url" name="media_url" class="form-control" placeholder="https://...">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dinamica-media-caption" class="form-label">Legenda da mídia</label>
+                            <input id="dinamica-media-caption" type="text" name="media_caption" class="form-control">
+                        </div>
+                    </div>
+                    <div class="text-end mt-4">
+                        <button type="submit" class="btn btn-success fw-bold">Salvar evento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not eventos_timeline_dinamica %}
+        <p class="text-muted">Nenhum evento cadastrado na Linha do Tempo Dinâmica.</p>
+        {% endif %}
+    </section>
+</div>
+
+{% if user.is_authenticated and atividades_timeline %}
+<div class="modal fade" id="modalRemoverAtividade" tabindex="-1" aria-labelledby="modalRemoverAtividadeLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="POST" action="#" id="formRemoverAtividade">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalRemoverAtividadeLabel">Remover atividade</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="selecionarAtividade" class="form-label">Escolha a atividade</label>
+                <select id="selecionarAtividade" class="form-select" required>
+                    {% for atividade in atividades_timeline %}
+                    <option value="{% url 'remover_midia' 'timeline' forloop.counter0 %}">{{ atividade.data }} — {{ atividade.titulo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Confirmar remoção da atividade selecionada?');">Remover selecionada</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_authenticated and eventos_timeline_dinamica %}
+<div class="modal fade" id="modalRemoverEventoDinamico" tabindex="-1" aria-labelledby="modalRemoverEventoDinamicoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="POST" action="#" id="formRemoverEventoDinamico">
+            {% csrf_token %}
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalRemoverEventoDinamicoLabel">Remover evento dinâmico</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="selecionarEventoDinamico" class="form-label">Escolha o evento</label>
+                <select id="selecionarEventoDinamico" class="form-select" required>
+                    {% for evento in eventos_timeline_dinamica %}
+                    <option value="{% url 'remover_midia' 'timeline_dinamica' forloop.counter0 %}">{{ evento.start_date.year }}-{{ evento.start_date.month }}-{{ evento.start_date.day }} — {{ evento.text.headline }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Confirmar remoção do evento selecionado?');">Remover selecionado</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('selecionarAtividade')?.addEventListener('change', function () {
+        document.getElementById('formRemoverAtividade').action = this.value;
+    });
+    const atividadeSelecionada = document.getElementById('selecionarAtividade');
+    if (atividadeSelecionada) {
+        document.getElementById('formRemoverAtividade').action = atividadeSelecionada.value;
+    }
+
+    document.getElementById('selecionarEventoDinamico')?.addEventListener('change', function () {
+        document.getElementById('formRemoverEventoDinamico').action = this.value;
+    });
+    const eventoDinamicoSelecionado = document.getElementById('selecionarEventoDinamico');
+    if (eventoDinamicoSelecionado) {
+        document.getElementById('formRemoverEventoDinamico').action = eventoDinamicoSelecionado.value;
+    }
+
+    document.getElementById('adicionar-foto-timeline')?.addEventListener('click', function () {
+        const container = document.getElementById('timeline-fotos');
+        const item = document.createElement('div');
+        item.className = 'input-group mb-2 timeline-foto-item';
+        item.innerHTML = '<input type="url" name="fotos" class="form-control" placeholder="https://..."><button type="button" class="btn btn-outline-danger" data-remove-foto aria-label="Remover link da imagem">Remover</button>';
+        container.appendChild(item);
+    });
+
+    document.getElementById('timeline-fotos')?.addEventListener('click', function (event) {
+        if (event.target.closest('[data-remove-foto]')) {
+            const items = this.querySelectorAll('.timeline-foto-item');
+            if (items.length > 1) {
+                event.target.closest('.timeline-foto-item').remove();
+            } else {
+                items[0].querySelector('input').value = '';
+            }
+        }
+    });
+</script>
+{% endblock %}

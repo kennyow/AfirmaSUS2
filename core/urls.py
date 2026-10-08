@@ -21,6 +21,7 @@ urlpatterns = [
     path('escala/nova/', views.cadastrar_escala, name='cadastrar_escala'),
 
     # Mídias e Formações
+    path('formacoes/', views.formacoes, name='formacoes'),
     path('midias/', views.midias, name='midias'),
     path('midias/adicionar/<str:tipo>/', views.adicionar_midia, name='adicionar_midia'),
     path('midias/remover/<str:tipo>/<int:index>/', views.remover_midia, name='remover_midia'),

@@ -46,7 +46,8 @@ def home(request):
 
     # Carregamento da Linha do Tempo de Atividades (JSON local)
     try:
-        with open("timeline.json", "r", encoding="utf-8") as f:
+        caminho_timeline_atividades = os.path.join(settings.BASE_DIR, 'timeline.json')
+        with open(caminho_timeline_atividades, "r", encoding="utf-8") as f:
             atividades_raw = json.load(f)
             
         atividades_timeline = []
