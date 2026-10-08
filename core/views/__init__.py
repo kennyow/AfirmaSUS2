@@ -10,4 +10,5 @@ from .management_views import (
     deletar_local,
     pagina_escala,
     cadastrar_escala,
+    deletar_escala,
 )

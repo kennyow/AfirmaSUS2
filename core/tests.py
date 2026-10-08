@@ -8,6 +8,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from core.models import EscalaTrabalho
+
 
 midias_views = import_module('core.views.midias')
 
@@ -152,3 +154,44 @@ class LinhaDoTempoMidiasTests(TestCase):
             dados = json.load(arquivo)
         self.assertEqual(dados['title'], {'text': {'headline': 'Linha do tempo'}})
         self.assertEqual(dados['events'], [{'text': {'headline': 'Manter'}}])
+
+
+class EscalaTrabalhoTests(TestCase):
+    def setUp(self):
+        usuario = get_user_model().objects.create_user(username='editor', password='senha-segura')
+        self.client.force_login(usuario)
+        self.escala = EscalaTrabalho.objects.create(
+            dia_semana='Segunda-feira',
+            turno='Manhã',
+            horario_inicio='08:00',
+            horario_fim='12:00',
+        )
+
+    def test_exclui_horario_da_escala(self):
+        resposta = self.client.post(
+            reverse('deletar_escala', args=[self.escala.pk])
+        )
+
+        self.assertRedirects(resposta, reverse('pagina_escala'))
+        self.assertFalse(EscalaTrabalho.objects.filter(pk=self.escala.pk).exists())
+
+    def test_exclusao_da_escala_nao_aceita_get(self):
+        resposta = self.client.get(
+            reverse('deletar_escala', args=[self.escala.pk])
+        )
+
+        self.assertEqual(resposta.status_code, 405)
+
+    def test_grade_identifica_cada_turno_com_uma_cor(self):
+        for turno in ('Tarde', 'Noite', 'Integral'):
+            EscalaTrabalho.objects.create(
+                dia_semana='Segunda-feira',
+                turno=turno,
+            )
+
+        resposta = self.client.get(reverse('pagina_escala'))
+
+        self.assertContains(resposta, 'class="badge bg-warning text-dark me-1">Manhã</span>')
+        self.assertContains(resposta, 'class="badge bg-primary me-1">Tarde</span>')
+        self.assertContains(resposta, 'class="badge bg-dark me-1">Noite</span>')
+        self.assertContains(resposta, 'class="badge bg-success me-1">Integral</span>')

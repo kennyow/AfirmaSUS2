@@ -2,6 +2,53 @@
 
 {% block title %}Escala e Calendário - AfirmaSUS-JP{% endblock %}
 
+{% block extra_head %}
+<style>
+    .weekly-schedule-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+
+    .weekly-day-card {
+        min-width: 0;
+        padding: 0.65rem;
+    }
+
+    .weekly-day-title {
+        font-size: 0.82rem;
+        white-space: nowrap;
+    }
+
+    .weekly-shift-card {
+        padding: 0.6rem !important;
+        overflow-wrap: anywhere;
+    }
+
+    .weekly-shift-card strong,
+    .weekly-shift-card small {
+        font-size: 0.75rem;
+    }
+
+    .weekly-shift-card .badge {
+        font-size: 0.68rem;
+    }
+
+    @media (max-width: 1199.98px) {
+        .weekly-schedule-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .weekly-schedule-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
@@ -16,24 +63,38 @@
 <!-- Grade Semanal de Escalas -->
 <div class="card card-custom p-4 mb-4">
     <h5 class="fw-bold text-primary mb-3">🗓️ Grade Semanal de Atuação</h5>
-    <div class="row g-3">
+    <div class="weekly-schedule-grid">
         {% for dia, lista_escalas in escalas_por_dia.items %}
-            <div class="col-md-4 col-lg-3">
-                <div class="border rounded p-3 bg-light h-100">
-                    <h6 class="fw-bold text-secondary border-bottom pb-2">{{ dia }}</h6>
-                    {% for item in lista_escalas %}
-                        <div class="bg-white p-2 mb-2 rounded shadow-sm border-start border-4 border-primary">
-                            <strong class="d-block text-dark small">{{ item.integrante.nome }}</strong>
-                            <span class="badge bg-info text-dark me-1">{{ item.turno }}</span>
-                            <small class="text-muted d-block mt-1">📍 {{ item.local.nome }}</small>
-                            {% if item.horario_inicio %}
-                                <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
-                            {% endif %}
-                        </div>
-                    {% empty %}
-                        <span class="text-muted small italic">Sem escala.</span>
-                    {% endfor %}
-                </div>
+            <div class="border rounded bg-light h-100 weekly-day-card">
+                <h6 class="fw-bold text-secondary border-bottom pb-2 weekly-day-title">{{ dia }}</h6>
+                {% for item in lista_escalas %}
+                    <div class="bg-white mb-2 rounded shadow-sm border-start border-4 border-primary weekly-shift-card">
+                        <strong class="d-block text-dark small">{{ item.integrante.nome }}</strong>
+                        {% if item.turno == 'Manhã' %}
+                            <span class="badge bg-warning text-dark me-1">{{ item.turno }}</span>
+                        {% elif item.turno == 'Tarde' %}
+                            <span class="badge bg-primary me-1">{{ item.turno }}</span>
+                        {% elif item.turno == 'Noite' %}
+                            <span class="badge bg-dark me-1">{{ item.turno }}</span>
+                        {% else %}
+                            <span class="badge bg-success me-1">{{ item.turno }}</span>
+                        {% endif %}
+                        <small class="text-muted d-block mt-1">📍 {{ item.local.nome }}</small>
+                        {% if item.horario_inicio %}
+                            <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
+                        {% endif %}
+                        {% if user.is_authenticated %}
+                            <form method="POST" action="{% url 'deletar_escala' item.pk %}" class="mt-2">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir este horário da escala?');">
+                                    Excluir horário
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <span class="text-muted small italic">Sem escala.</span>
+                {% endfor %}
             </div>
         {% endfor %}
     </div>

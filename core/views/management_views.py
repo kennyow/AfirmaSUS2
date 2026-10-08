@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from ..models import Local, Atividade, EscalaTrabalho
 from ..forms import LocalForm, AtividadeForm, EscalaForm
 
@@ -62,3 +63,12 @@ def cadastrar_escala(request):
         form = EscalaForm()
 
     return render(request, 'core/form_escala.html', {'form': form})
+
+
+@login_required
+@require_POST
+def deletar_escala(request, escala_id):
+    escala = get_object_or_404(EscalaTrabalho, pk=escala_id)
+    escala.delete()
+    messages.warning(request, "Horário removido da escala com sucesso.")
+    return redirect('pagina_escala')

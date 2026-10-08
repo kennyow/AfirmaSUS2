@@ -19,6 +19,7 @@ urlpatterns = [
     path('local/deletar/<int:local_id>/', main_views.deletar_local, name='deletar_local'),
     path('atividade/nova/', views.cadastrar_atividade, name='cadastrar_atividade'),
     path('escala/nova/', views.cadastrar_escala, name='cadastrar_escala'),
+    path('escala/deletar/<int:escala_id>/', views.deletar_escala, name='deletar_escala'),
 
     # Mídias e Formações
     path('formacoes/', views.formacoes, name='formacoes'),
