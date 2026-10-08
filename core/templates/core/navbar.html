@@ -1,0 +1,19 @@
+<nav class="subnav-bg py-1 mb-4">
+    <div class="container d-flex align-items-center gap-1 overflow-auto">
+        <a href="{% url 'home' %}" class="subnav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            📌 Apresentação
+        </a>
+        <a href="{% url 'pagina_mapa' %}" class="subnav-link {% if request.resolver_match.url_name == 'pagina_mapa' %}active{% endif %}">
+            🗺️ Mapa do Território
+        </a>
+        <a href="{% url 'pagina_escala' %}" class="subnav-link {% if request.resolver_match.url_name == 'pagina_escala' %}active{% endif %}">
+            📅 Escalas
+        </a>
+        <a href="{% url 'midias' %}" class="subnav-link {% if request.resolver_match.url_name == 'midias' %}active{% endif %}">
+            🎓 Formações
+        </a>
+        <a href="{% url 'levantamento_estatistico' %}" class="subnav-link {% if request.resolver_match.url_name == 'levantamento_estatistico' %}active{% endif %}">
+            📊 Levantamento Estatístico
+        </a>
+    </div>
+</nav>

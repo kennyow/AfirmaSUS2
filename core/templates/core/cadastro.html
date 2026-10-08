@@ -1,0 +1,21 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Cadastro - AfirmaSUS-JP{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 500px;">
+    <div class="card card-custom p-4">
+        <h4 class="fw-bold text-primary mb-2 text-center">🔐 Cadastro de Extensionista</h4>
+        <p class="text-muted small text-center mb-4">Insira seus dados. Seu CPF e E-mail serão validados na lista de membros autorizados.</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary w-100 fw-bold mt-3">Criar Minha Conta</button>
+        </form>
+
+        <hr class="my-4">
+        <p class="small text-center m-0">Já possui uma conta? <a href="{% url 'login' %}">Faça login</a></p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Levantamento Estatístico - AfirmaSUS-JP{% endblock %}
+
+{% block extra_head %}
+<!-- Plotly.js para suporte aos gráficos -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+    .metric-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        transition: transform 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-3px);
+    }
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #481859;
+        line-height: 1.1;
+    }
+    .metric-delta {
+        font-size: 0.82rem;
+        color: #28a745;
+        font-weight: 600;
+        background: #e8f5e9;
+        padding: 3px 10px;
+        border-radius: 20px;
+        display: inline-block;
+        margin-top: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">📊 Indicadores de Processos de Trabalho e Formação</h3>
+            <p class="text-muted m-0">Acompanhamento consolidado e métricas extraídas dinamicamente do histórico de ações.</p>
+        </div>
+    </div>
+
+    <!-- SEÇÃO 1: METRICAS E INDICADORES -->
+    <div class="card shadow-sm border-0 rounded-4 p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+            <h5 class="fw-bold text-primary m-0">📌 Indicadores Gerais de Impacto e Saúde</h5>
+            {% if user.is_authenticated %}
+                <button class="btn btn-sm btn-outline-secondary rounded-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEditIndicators">
+                    ⚙️ Editar Valores
+                </button>
+            {% endif %}
+        </div>
+
+        <!-- Formulário recolhível de Edição (Apenas para usuários autenticados) -->
+        {% if user.is_authenticated %}
+        <div class="collapse mb-4" id="collapseEditIndicators">
+            <div class="card card-body bg-light border-0 rounded-3">
+                <form action="{% url 'atualizar_indicadores' %}" method="POST" class="row g-3 align-items-end">
+                    {% csrf_token %}
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-secondary">Participantes Impactados</label>
+                        <input type="number" name="participantes_impactados" class="form-control" value="{{ participantes_impactados }}" min="0">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-secondary">Formações e Oficinas Realizadas</label>
+                        <input type="number" name="formacoes_oficinas" class="form-control" value="{{ formacoes_oficinas }}" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-success fw-bold w-100">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Cards estilo Streamlit st.metric -->
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <small class="text-secondary fw-bold text-uppercase d-block mb-1">Total de Ações Realizadas</small>
+                    <div class="metric-value">{{ total_acoes }}</div>
+                    <span class="metric-delta">↑ extraído do ChronoFlo JSON</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <small class="text-secondary fw-bold text-uppercase d-block mb-1">Participantes Impactados</small>
+                    <div class="metric-value">{{ participantes_impactados }}</div>
+                    <span class="metric-delta">pessoas atendidas</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="metric-card">
+                    <small class="text-secondary fw-bold text-uppercase d-block mb-1">Formações e Oficinas</small>
+                    <div class="metric-value">{{ formacoes_oficinas }}</div>
+                    <span class="metric-delta">atividades formativas</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEÇÃO 2: GRÁFICOS DINÂMICOS -->
+    <div class="card shadow-sm border-0 rounded-4 p-4">
+        <h5 class="fw-bold text-primary border-bottom pb-3 mb-4">📈 Panorama das Atividades do ChronoFlo</h5>
+
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="border rounded-4 p-3 bg-white h-100 shadow-sm">
+                    <h6 class="fw-bold text-dark mb-3 text-center">Evolução Mensal de Atividades</h6>
+                    {% if grafico_linha_html %}
+                        {{ grafico_linha_html|safe }}
+                    {% else %}
+                        <p class="text-muted text-center py-5">Sem dados cadastrados na linha do tempo.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="border rounded-4 p-3 bg-white h-100 shadow-sm">
+                    <h6 class="fw-bold text-dark mb-3 text-center">Distribuição por Eixo de Atuação</h6>
+                    {% if grafico_rosca_html %}
+                        {{ grafico_rosca_html|safe }}
+                    {% else %}
+                        <p class="text-muted text-center py-5">Sem dados cadastrados na linha do tempo.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

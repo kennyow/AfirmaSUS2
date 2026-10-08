@@ -1,0 +1,3043 @@
+
+================================================================================
+ARQUIVO: empacotamento.py
+================================================================================
+
+import os
+
+# Caminho da pasta do seu projeto Django
+projeto_path = r"C:\Users\kenny\OneDrive\Documentos\ProjetoPython\AfirmaSUS2\afirmasus_django"
+arquivo_saida = "projeto_consolidado.txt"
+
+# Extensões que você quer incluir no relatório
+extensoes_permitidas = {".py", ".html", ".css", ".js"} #".json"
+
+# Pastas a ignorar (migrações, ambiente virtual, cache, etc.)
+pastas_ignoradas = {"venv", ".git", "__pycache__", "staticfiles", "media"}
+
+with open(arquivo_saida, "w", encoding="utf-8") as outfile:
+    for root, dirs, files in os.walk(projeto_path):
+        # Filtra pastas ignoradas
+        dirs[:] = [d for d in dirs if d not in pastas_ignoradas]
+
+        for file in files:
+            if any(file.endswith(ext) for ext in extensoes_permitidas):
+                caminho_completo = os.path.join(root, file)
+                rel_path = os.path.relpath(caminho_completo, projeto_path)
+
+                outfile.write(f"\n{'='*80}\n")
+                outfile.write(f"ARQUIVO: {rel_path}\n")
+                outfile.write(f"{'='*80}\n\n")
+
+                try:
+                    with open(caminho_completo, "r", encoding="utf-8") as infile:
+                        outfile.write(infile.read())
+                        outfile.write("\n")
+                except Exception as e:
+                    outfile.write(f"[Erro ao ler o arquivo: {e}]\n")
+
+print(f"Consolidação concluída com sucesso em '{arquivo_saida}'!")
+
+================================================================================
+ARQUIVO: manage.py
+================================================================================
+
+#!/usr/bin/env python
+"""Django's command-line utility for administrative tasks."""
+import os
+import sys
+
+
+def main():
+    """Run administrative tasks."""
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'setup.settings')
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "Couldn't import Django. Are you sure it's installed and "
+            "available on your PYTHONPATH environment variable? Did you "
+            "forget to activate a virtual environment?"
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+    main()
+
+
+================================================================================
+ARQUIVO: core\admin.py
+================================================================================
+
+from django.contrib import admin
+from .models import Local, Atividade, Integrante, EscalaTrabalho, UsuarioAutorizado
+
+@admin.register(UsuarioAutorizado)
+class UsuarioAutorizadoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'email', 'cpf', 'ativo')
+    search_fields = ('nome', 'email', 'cpf')
+    list_filter = ('ativo',)
+
+admin.site.register(Local)
+admin.site.register(Atividade)
+admin.site.register(Integrante)
+admin.site.register(EscalaTrabalho)
+
+================================================================================
+ARQUIVO: core\apps.py
+================================================================================
+
+from django.apps import AppConfig
+
+
+class CoreConfig(AppConfig):
+    name = 'core'
+
+
+================================================================================
+ARQUIVO: core\forms.py
+================================================================================
+
+# core/forms.py
+
+import os
+import json
+from django import forms
+from django.conf import settings
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from .models import Local, Atividade, EscalaTrabalho, UsuarioAutorizado
+
+
+# ==========================================
+# FORMULÁRIO DE LOCAIS DO MAPA
+# ==========================================
+class LocalForm(forms.ModelForm):
+    CATEGORIAS_CHOICES = [
+        ('Saúde', '🟢 Saúde (Verde / Hospital)'),
+        ('Esporte e Lazer', '🟠 Esporte e Lazer (Laranja / Running)'),
+        ('Educação', '🟣 Educação (Roxo / Graduate)'),
+        ('Religião', '🔵 Religião (Azul / Praying)'),
+        ('Cultura', '🟡 Cultura (Amarelo / Landmark)'),
+        ('Comércio', '🔴 Comércio (Vermelho / Shopping)'),
+        ('Administrativo', '🩷 Administrativo (Rosa / Briefcase)'),
+    ]
+
+    categoria = forms.ChoiceField(
+        choices=CATEGORIAS_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    class Meta:
+        model = Local
+        fields = ['nome', 'distrito', 'categoria', 'lat', 'lon', 'status', 'foto', 'descricao']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: UBS São Rafael'}),
+            'distrito': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Distrito I'}),
+            'lat': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Ex: -7.13567'}),
+            'lon': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Ex: -34.85519'}),
+            'status': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Ativo / Crítico'}),
+            'foto': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'Link da foto (Google Drive ou URL)'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descrição completa do local...'}),
+        }
+
+    def clean_lat(self):
+        lat = self.cleaned_data.get('lat')
+        if lat is not None and abs(lat) > 90:
+            # Tenta corrigir entrada sem ponto decimal
+            str_lat = str(lat).replace('.', '').replace('-', '')
+            val = float(f"-{str_lat[:1]}.{str_lat[1:]}") if lat < 0 else float(f"{str_lat[:1]}.{str_lat[1:]}")
+            return val
+        return lat
+
+    def clean_lon(self):
+        lon = self.cleaned_data.get('lon')
+        if lon is not None and abs(lon) > 180:
+            # Tenta corrigir entrada sem ponto decimal (ex: -348575 -> -34.8575)
+            str_lon = str(lon).replace('.', '').replace('-', '')
+            val = float(f"-{str_lon[:2]}.{str_lon[2:]}") if lon < 0 else float(f"{str_lon[:2]}.{str_lon[2:]}")
+            return val
+        return lon
+
+    def save(self, commit=True):
+        local = super().save(commit=False)
+        
+        # Mapeamento automático de Cor e Ícone por Categoria
+        MAPA_ATRIBUTOS = {
+            'Saúde': {'cor': 'green', 'icone': 'heart-pulse'},
+            'Esporte e Lazer': {'cor': 'orange', 'icone': 'person-running'},
+            'Educação': {'cor': 'purple', 'icone': 'user-graduate'},
+            'Religião': {'cor': 'blue', 'icone': 'person-praying'},
+            'Cultura': {'cor': 'beige', 'icone': 'landmark'},
+            'Comércio': {'cor': 'red', 'icone': 'cart-shopping'},
+            'Administrativo': {'cor': 'pink', 'icone': 'briefcase'},
+        }
+
+        attr = MAPA_ATRIBUTOS.get(local.categoria, {'cor': 'purple', 'icone': 'location-dot'})
+        local.cor = attr['cor']
+        local.icone = attr['icone']
+
+        if commit:
+            local.save()
+
+            # Persistência síncrona no arquivo dados_locais.json
+            caminho_json = os.path.join(settings.BASE_DIR, 'dados_locais.json')
+            try:
+                dados_existentes = []
+                if os.path.exists(caminho_json):
+                    with open(caminho_json, 'r', encoding='utf-8') as f:
+                        dados_existentes = json.load(f)
+
+                novo_item = {
+                    "id": local.id,
+                    "nome": local.nome,
+                    "distrito": local.distrito or "Distrito I",
+                    "categoria": local.categoria,
+                    "lat": float(local.lat),
+                    "lon": float(local.lon),
+                    "foto": local.foto or "",
+                    "descricao": local.descricao or "",
+                    "status": local.status or "Ativo",
+                    "cor": local.cor,
+                    "icone": local.icone
+                }
+
+                # Atualiza ou insere no JSON
+                dados_existentes = [item for item in dados_existentes if item.get('id') != local.id]
+                dados_existentes.append(novo_item)
+
+                with open(caminho_json, 'w', encoding='utf-8') as f:
+                    json.dump(dados_existentes, f, ensure_ascii=False, indent=2)
+
+            except Exception as e:
+                print(f"Erro ao salvar em dados_locais.json: {e}")
+
+        return local
+
+
+# ==========================================
+# FORMULÁRIO DE ATIVIDADES / EVENTOS
+# ==========================================
+class AtividadeForm(forms.ModelForm):
+    class Meta:
+        model = Atividade
+        fields = ['titulo', 'data', 'descricao', 'local', 'imagem']
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Título da Atividade/Evento'}),
+            'data': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'local': forms.Select(attrs={'class': 'form-select'}),
+            'imagem': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+
+
+# ==========================================
+# FORMULÁRIO DE ESCALAS DE TRABALHO
+# ==========================================
+class EscalaForm(forms.ModelForm):
+    class Meta:
+        model = EscalaTrabalho
+        fields = ['integrante', 'local', 'dia_semana', 'turno', 'horario_inicio', 'horario_fim', 'observacoes']
+        widgets = {
+            'integrante': forms.Select(attrs={'class': 'form-select'}),
+            'local': forms.Select(attrs={'class': 'form-select'}),
+            'dia_semana': forms.Select(attrs={'class': 'form-select'}),
+            'turno': forms.Select(attrs={'class': 'form-select'}),
+            'horario_inicio': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'horario_fim': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Informações adicionais...'}),
+        }
+
+
+# ==========================================
+# FORMULÁRIO DE CADASTRO DE USUÁRIO
+# ==========================================
+class CadastroUsuarioForm(forms.ModelForm):
+    cpf = forms.CharField(
+        max_length=14, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '000.000.000-00'})
+    )
+    password = forms.CharField(
+        label="Senha", 
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Digite sua senha'})
+    )
+    password_confirm = forms.CharField(
+        label="Confirme a Senha", 
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Repita a senha'})
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email']
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome de usuário para login'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Primeiro Nome'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Sobrenome'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'seuemail@exemplo.com'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        cpf_digitado = cleaned_data.get('cpf', '').replace('.', '').replace('-', '').strip()
+        email_digitado = cleaned_data.get('email', '').lower().strip()
+        senha = cleaned_data.get('password')
+        senha_confirm = cleaned_data.get('password_confirm')
+
+        # 1. Validação das senhas
+        if senha and senha_confirm and senha != senha_confirm:
+            raise ValidationError("As senhas digitadas não coincidem.")
+
+        # 2. Validação da White-list (CPF ou Email)
+        autorizado = UsuarioAutorizado.objects.filter(ativo=True).filter(
+            models.Q(email__iexact=email_digitado) | models.Q(cpf__icontains=cpf_digitado)
+        ).first()
+
+        if not autorizado:
+            raise ValidationError(
+                "Acesso negado! Este CPF/E-mail não consta na lista de membros autorizados do AfirmaSUS."
+            )
+
+        return cleaned_data
+
+================================================================================
+ARQUIVO: core\models.py
+================================================================================
+
+from django.db import models
+from django.contrib.auth.models import User
+
+# ---------------------------------------------------------
+# 1. MODELO DE LOCAIS (MAPA INTERATIVO)
+# ---------------------------------------------------------
+class Local(models.Model):
+    nome = models.CharField(max_length=150)
+    distrito = models.CharField(max_length=100, blank=True, null=True)
+    categoria = models.CharField(max_length=100, default='Saúde')
+    lat = models.FloatField()
+    lon = models.FloatField()
+    status = models.CharField(max_length=50, blank=True, null=True)
+    cor = models.CharField(max_length=30, default='purple')
+    icone = models.CharField(max_length=30, default='hospital')
+    foto = models.CharField(max_length=500, blank=True, null=True)
+    descricao = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nome
+
+
+# ---------------------------------------------------------
+# 2. MODELO DE ATIVIDADES E EVENTOS (CALENDÁRIO / LINHA DO TEMPO)
+# ---------------------------------------------------------
+class Atividade(models.Model):
+    titulo = models.CharField(max_length=200, verbose_name="Título do Evento")
+    data = models.DateField(verbose_name="Data da Atividade")
+    descricao = models.TextField(blank=True, verbose_name="Descrição")
+    local = models.ForeignKey(Local, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Local Relacionado")
+    
+    # Campo para upload direto de imagem pelo usuário
+    imagem = models.ImageField(upload_to='eventos/', blank=True, null=True, verbose_name="Foto/Evidência do Evento")
+
+    def __str__(self):
+        return f"{self.titulo} - {self.data}"
+
+
+# ---------------------------------------------------------
+# 3. MODELO DE INTEGRANTES DO PROJETO
+# ---------------------------------------------------------
+class Integrante(models.Model):
+    nome = models.CharField(max_length=150)
+    curso = models.CharField(max_length=100, blank=True, null=True)
+    situacao = models.CharField(max_length=50, blank=True, null=True)
+    foto = models.CharField(max_length=500, blank=True, null=True)
+
+    def __str__(self):
+        return self.nome
+
+    @property
+    def foto_url_direta(self):
+        """Extrai o ID do Google Drive e redireciona para o CDN de imagens lh3.googleusercontent.com"""
+        if not self.foto:
+            return ''
+
+        if 'drive.google.com' in self.foto or 'googleusercontent.com' in self.foto:
+            file_id = None
+            if '/d/' in self.foto:
+                file_id = self.foto.split('/d/')[1].split('/')[0]
+            elif 'id=' in self.foto:
+                file_id = self.foto.split('id=')[1].split('&')[0]
+            
+            if file_id:
+                # Servidor estático direto de mídia da Google (sem bloqueios CORS/hotlink)
+                return f"https://lh3.googleusercontent.com/d/{file_id}"
+                
+        return self.foto
+
+
+# ---------------------------------------------------------
+# 4. MODELO DE ESCALA DE TRABALHO
+# ---------------------------------------------------------
+
+class EscalaTrabalho(models.Model):
+    DIAS_SEMANA = [
+        ('Segunda-feira', 'Segunda-feira'),
+        ('Terça-feira', 'Terça-feira'),
+        ('Quarta-feira', 'Quarta-feira'),
+        ('Quinta-feira', 'Quinta-feira'),
+        ('Sexta-feira', 'Sexta-feira'),
+        ('Sábado', 'Sábado'),
+        ('Domingo', 'Domingo'),
+    ]
+
+    TURNOS = [
+        ('Manhã', 'Manhã'),
+        ('Tarde', 'Tarde'),
+        ('Noite', 'Noite'),
+        ('Integral', 'Integral'),
+    ]
+
+    integrante = models.ForeignKey(
+        Integrante, 
+        on_delete=models.CASCADE, 
+        related_name='escalas', 
+        verbose_name="Integrante",
+        null=True, 
+        blank=True
+    )
+    local = models.ForeignKey(
+        Local, 
+        on_delete=models.CASCADE, 
+        related_name='escalas', 
+        verbose_name="Local de Atuação",
+        null=True, 
+        blank=True
+    )
+    dia_semana = models.CharField(
+        max_length=20, 
+        choices=DIAS_SEMANA, 
+        default='Segunda-feira',
+        verbose_name="Dia da Semana",
+        null=True, 
+        blank=True
+    )
+    turno = models.CharField(max_length=20, choices=TURNOS, default='Manhã', verbose_name="Turno")
+    horario_inicio = models.TimeField(null=True, blank=True, verbose_name="Horário de Início")
+    horario_fim = models.TimeField(null=True, blank=True, verbose_name="Horário de Término")
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+
+    class Meta:
+        verbose_name = "Escala de Trabalho"
+        verbose_name_plural = "Escalas de Trabalho"
+        ordering = ['dia_semana', 'horario_inicio']
+
+    def __str__(self):
+        nome_integrante = self.integrante.nome if self.integrante else "Sem Integrante"
+        nome_local = self.local.nome if self.local else "Sem Local"
+        return f"{nome_integrante} - {nome_local} ({self.dia_semana})"
+
+
+class UsuarioAutorizado(models.Model):
+    cpf = models.CharField(max_length=14, unique=True, verbose_name="CPF (Apenas números ou formatado)")
+    email = models.EmailField(unique=True, verbose_name="E-mail Autorizado")
+    nome = models.CharField(max_length=150, verbose_name="Nome Completo")
+    ativo = models.BooleanField(default=True, verbose_name="Autorização Ativa")
+
+    class Meta:
+        verbose_name = "Usuário Autorizado"
+        verbose_name_plural = "Usuários Autorizados (White-list)"
+
+    def __str__(self):
+        return f"{self.nome} ({self.cpf})"
+
+
+
+class Perfil(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='perfil')
+    cpf = models.CharField(max_length=14, unique=True, verbose_name="CPF")
+    data_nascimento = models.DateField(null=True, blank=True, verbose_name="Data de Nascimento")
+    avatar = models.ImageField(upload_to='avatares/', null=True, blank=True, verbose_name="Foto de Perfil / Avatar")
+
+    def __str__(self):
+        return f"Perfil de {self.user.get_full_name() or self.user.username}"
+
+    @property
+    def avatar_url(self):
+        """Retorna a URL da foto de perfil ou um avatar com a inicial do nome"""
+        if self.avatar:
+            return self.avatar.url
+        return None
+
+================================================================================
+ARQUIVO: core\tests.py
+================================================================================
+
+from django.test import TestCase
+
+# Create your tests here.
+
+
+================================================================================
+ARQUIVO: core\urls.py
+================================================================================
+
+from django.urls import path
+from . import views
+from core.views import main_views
+
+urlpatterns = [
+    # Navegação Principal
+    path('', views.home, name='home'),
+    path('mapa/', views.mapa_territorio, name='pagina_mapa'),
+    path('escala/', views.pagina_escala, name='pagina_escala'),
+
+    # Autenticação e Usuários
+    path('login/', views.fazer_login, name='login'),
+    path('logout/', views.fazer_logout, name='logout'),
+    path('cadastrar/', views.cadastrar_usuario, name='cadastrar_usuario'),
+
+    # Gestão de Conteúdo
+    path('local/novo/', main_views.cadastrar_local, name='cadastrar_local'),
+    path('local/<int:local_id>/editar/',main_views.editar_local, name='editar_local',),
+    path('local/deletar/<int:local_id>/',main_views.deletar_local,name='deletar_local',),
+    path('atividade/nova/', views.cadastrar_atividade, name='cadastrar_atividade'),
+    path('escala/nova/', views.cadastrar_escala, name='cadastrar_escala'),
+
+    #midias
+    path('midias/', views.midias, name='midias'),
+    path('midias/adicionar/', views.adicionar_midia, name='adicionar_midia'),
+    path('midias/remover/', views.remover_midia, name='remover_midia'),
+
+    path('minha-nova-aba/', main_views.nova_aba_view, name='nome_da_sua_aba'),
+]
+
+================================================================================
+ARQUIVO: core\__init__.py
+================================================================================
+
+
+
+================================================================================
+ARQUIVO: core\management\commands\importar_json.py
+================================================================================
+
+import json
+import os
+from django.core.management.base import BaseCommand
+from core.models import Local, Integrante, Atividade
+
+class Command(BaseCommand):
+    help = 'Importa os dados dos arquivos JSON antigos para o banco de dados do Django'
+
+    def handle(self, *args, **options):
+        # ---------------------------------------------------------
+        # 1. IMPORTAÇÃO DOS LOCAIS (dados_locais.json)
+        # ---------------------------------------------------------
+        caminho_locais = 'dados_locais.json'
+        if os.path.exists(caminho_locais):
+            with open(caminho_locais, 'r', encoding='utf-8') as f:
+                dados_locais = json.load(f)
+                
+            qtd_locais = 0
+            for item in dados_locais:
+                # get_or_create evita duplicar o registro no banco se já existir
+                local, created = Local.objects.get_or_create(
+                    nome=item.get('nome'),
+                    defaults={
+                        'distrito': item.get('distrito', ''),
+                        'categoria': item.get('categoria', 'Saúde'),
+                        'lat': float(item.get('lat', 0.0)),
+                        'lon': float(item.get('lon', 0.0)),
+                        'status': item.get('status', ''),
+                        'cor': item.get('cor', 'purple'),
+                        'icone': item.get('icone', 'hospital'),
+                        'foto': item.get('foto', ''),
+                        'descricao': item.get('descricao', ''),
+                    }
+                )
+                if created:
+                    qtd_locais += 1
+            self.stdout.write(self.style.SUCCESS(f' Successfully imported {qtd_locais} novos locais!'))
+        else:
+            self.stdout.write(self.style.WARNING(f' Arquivo {caminho_locais} não encontrado na raiz.'))
+
+        # ---------------------------------------------------------
+        # 2. IMPORTAÇÃO DOS INTEGRANTES (integrantes.json)
+        # ---------------------------------------------------------
+        caminho_integrantes = 'integrantes.json'
+        if os.path.exists(caminho_integrantes):
+            with open(caminho_integrantes, 'r', encoding='utf-8') as f:
+                dados_integrantes = json.load(f)
+                
+            qtd_integrantes = 0
+            for item in dados_integrantes:
+                integrante, created = Integrante.objects.get_or_create(
+                    nome=item.get('nome'),
+                    defaults={
+                        'curso': item.get('curso', ''),
+                        'situacao': item.get('situacao', ''),
+                        'foto': item.get('foto', ''),
+                    }
+                )
+                if created:
+                    qtd_integrantes += 1
+            self.stdout.write(self.style.SUCCESS(f' Successfully imported {qtd_integrantes} novos integrantes!'))
+        else:
+            self.stdout.write(self.style.WARNING(f' Arquivo {caminho_integrantes} não encontrado na raiz.'))
+
+================================================================================
+ARQUIVO: core\management\commands\importar_usuarios_excel.py
+================================================================================
+
+import pandas as pd
+import re
+from django.core.management.base import BaseCommand
+from django.contrib.auth.models import User
+from core.models import Perfil
+
+class Command(BaseCommand):
+    help = 'Importa usuários e perfis a partir de uma planilha Excel (.xlsx)'
+
+    def add_arguments(self, parser):
+        parser.add_argument('caminho_excel', type=str, help='Caminho completo do arquivo Excel')
+
+    def handle(self, *args, **kwargs):
+        caminho = kwargs['caminho_excel']
+        self.stdout.write(self.style.WARNING(f"Lendo arquivo: {caminho}"))
+
+        try:
+            df = pd.read_excel(caminho)
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Erro ao abrir o arquivo: {e}"))
+            return
+
+        criados = 0
+        ignorados = 0
+
+        for index, row in df.iterrows():
+            nome = str(row.get('Nome', '')).strip()
+            email = str(row.get('Email', '')).strip().lower()
+            cpf_raw = str(row.get('CPF', ''))
+            
+            # Limpa o CPF deixando apenas os dígitos numéricos
+            cpf_limpo = re.sub(r'\D', '', cpf_raw)
+
+            if not email or not cpf_limpo or email == 'nan':
+                self.stdout.write(self.style.ERROR(f"Linha {index+2}: Email ou CPF inválido/vazio. Ignorando..."))
+                ignorados += 1
+                continue
+
+            # Verifica se o usuário já existe no Django
+            if User.objects.filter(username=email).exists():
+                self.stdout.write(self.style.WARNING(f"Usuário {email} já existe. Ignorando..."))
+                ignorados += 1
+                continue
+
+            # Separa primeiro nome e sobrenome
+            partes_nome = nome.split(' ', 1)
+            first_name = partes_nome[0]
+            last_name = partes_nome[1] if len(partes_nome) > 1 else ''
+
+            # Cria o usuário com E-mail no username e CPF limpo como Senha
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=cpf_limpo,
+                first_name=first_name,
+                last_name=last_name
+            )
+
+            # Trata data de nascimento (se existir)
+            data_nasc = row.get('Data de Nascimento')
+            if pd.isna(data_nasc):
+                data_nasc = None
+
+            # Cria o perfil associado ao usuário
+            Perfil.objects.create(
+                user=user,
+                cpf=cpf_limpo,
+                data_nascimento=data_nasc
+            )
+
+            criados += 1
+            self.stdout.write(self.style.SUCCESS(f"✅ Usuário criado: {nome} ({email})"))
+
+        self.stdout.write(self.style.SUCCESS(f"\nConcluído! {criados} usuários criados e {ignorados} ignorados/existentes."))
+
+================================================================================
+ARQUIVO: core\management\commands\__init__.py
+================================================================================
+
+
+
+================================================================================
+ARQUIVO: core\migrations\0001_initial.py
+================================================================================
+
+# Generated by Django 6.1.1 on 2026-09-22 21:09
+
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    initial = True
+
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='EscalaTrabalho',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('dia', models.CharField(choices=[('Segunda', 'Segunda-feira'), ('Terça', 'Terça-feira'), ('Quarta', 'Quarta-feira'), ('Quinta', 'Quinta-feira'), ('Sexta', 'Sexta-feira')], max_length=20, verbose_name='Dia da Semana')),
+                ('turno', models.CharField(choices=[('Manhã', 'Manhã'), ('Tarde', 'Tarde')], max_length=10, verbose_name='Turno')),
+                ('equipe', models.CharField(max_length=255, verbose_name='Integrantes (Ex: Kennyo - Gabi - Thayane)')),
+            ],
+            options={
+                'verbose_name': 'Escala de Trabalho',
+                'verbose_name_plural': 'Escalas de Trabalho',
+            },
+        ),
+        migrations.CreateModel(
+            name='Integrante',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('nome', models.CharField(max_length=150, verbose_name='Nome Completo')),
+                ('curso', models.CharField(max_length=150, verbose_name='Curso / Graduação')),
+                ('situacao', models.CharField(blank=True, max_length=100, null=True, verbose_name='Situação / Função no Projeto')),
+                ('foto', models.URLField(blank=True, max_length=500, null=True, verbose_name='URL da Foto do Perfil')),
+            ],
+            options={
+                'verbose_name': 'Integrante',
+                'verbose_name_plural': 'Integrantes do Projeto',
+            },
+        ),
+        migrations.CreateModel(
+            name='Local',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('nome', models.CharField(max_length=150, verbose_name='Nome do Local')),
+                ('distrito', models.CharField(blank=True, max_length=100, null=True, verbose_name='Distrito Sanitário')),
+                ('categoria', models.CharField(choices=[('Esporte e Lazer', 'Esporte e Lazer'), ('Saúde', 'Saúde'), ('Educação', 'Educação'), ('Religião', 'Religião'), ('Cultura', 'Cultura'), ('Comércio', 'Comércio'), ('Administrativo', 'Administrativo')], max_length=50, verbose_name='Categoria')),
+                ('lat', models.FloatField(verbose_name='Latitude')),
+                ('lon', models.FloatField(verbose_name='Longitude')),
+                ('status', models.CharField(blank=True, max_length=100, null=True, verbose_name='Status de Infraestrutura')),
+                ('cor', models.CharField(default='purple', max_length=20, verbose_name='Cor do Marcador')),
+                ('icone', models.CharField(default='hospital', max_length=50, verbose_name='Ícone (FontAwesome)')),
+                ('foto', models.URLField(blank=True, max_length=500, null=True, verbose_name='URL da Foto (Drive ou Externa)')),
+                ('descricao', models.TextField(blank=True, null=True, verbose_name='Descrição do Local')),
+            ],
+            options={
+                'verbose_name': 'Local',
+                'verbose_name_plural': 'Locais do Mapa',
+            },
+        ),
+        migrations.CreateModel(
+            name='Atividade',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('titulo', models.CharField(max_length=200, verbose_name='Título da Atividade')),
+                ('data', models.DateField(verbose_name='Data da Atividade')),
+                ('descricao', models.TextField(verbose_name='Descrição da Atividade')),
+                ('foto', models.URLField(blank=True, max_length=500, null=True, verbose_name='URL da Imagem')),
+                ('cor_borda', models.CharField(default='#4C2059', max_length=20, verbose_name='Cor de Destaque')),
+                ('criado_em', models.DateTimeField(auto_now_add=True)),
+                ('criado_por', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, verbose_name='Cadastrado por')),
+            ],
+            options={
+                'verbose_name': 'Atividade',
+                'verbose_name_plural': 'Atividades e Eventos',
+                'ordering': ['-data'],
+            },
+        ),
+    ]
+
+
+================================================================================
+ARQUIVO: core\migrations\0002_alter_atividade_options_alter_integrante_options_and_more.py
+================================================================================
+
+# Generated by Django 6.1.1 on 2026-09-22 23:54
+
+import django.db.models.deletion
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('core', '0001_initial'),
+    ]
+
+    operations = [
+        migrations.AlterModelOptions(
+            name='atividade',
+            options={},
+        ),
+        migrations.AlterModelOptions(
+            name='integrante',
+            options={},
+        ),
+        migrations.AlterModelOptions(
+            name='local',
+            options={},
+        ),
+        migrations.RemoveField(
+            model_name='atividade',
+            name='cor_borda',
+        ),
+        migrations.RemoveField(
+            model_name='atividade',
+            name='criado_em',
+        ),
+        migrations.RemoveField(
+            model_name='atividade',
+            name='criado_por',
+        ),
+        migrations.RemoveField(
+            model_name='atividade',
+            name='foto',
+        ),
+        migrations.AddField(
+            model_name='atividade',
+            name='imagem',
+            field=models.ImageField(blank=True, null=True, upload_to='eventos/', verbose_name='Foto/Evidência do Evento'),
+        ),
+        migrations.AddField(
+            model_name='atividade',
+            name='local',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='core.local', verbose_name='Local Relacionado'),
+        ),
+        migrations.AlterField(
+            model_name='atividade',
+            name='descricao',
+            field=models.TextField(blank=True, verbose_name='Descrição'),
+        ),
+        migrations.AlterField(
+            model_name='atividade',
+            name='titulo',
+            field=models.CharField(max_length=200, verbose_name='Título do Evento'),
+        ),
+        migrations.AlterField(
+            model_name='integrante',
+            name='curso',
+            field=models.CharField(blank=True, max_length=100, null=True),
+        ),
+        migrations.AlterField(
+            model_name='integrante',
+            name='foto',
+            field=models.CharField(blank=True, max_length=500, null=True),
+        ),
+        migrations.AlterField(
+            model_name='integrante',
+            name='nome',
+            field=models.CharField(max_length=150),
+        ),
+        migrations.AlterField(
+            model_name='integrante',
+            name='situacao',
+            field=models.CharField(blank=True, max_length=50, null=True),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='categoria',
+            field=models.CharField(default='Saúde', max_length=100),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='cor',
+            field=models.CharField(default='purple', max_length=30),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='descricao',
+            field=models.TextField(blank=True, null=True),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='distrito',
+            field=models.CharField(blank=True, max_length=100, null=True),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='foto',
+            field=models.CharField(blank=True, max_length=500, null=True),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='icone',
+            field=models.CharField(default='hospital', max_length=30),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='lat',
+            field=models.FloatField(),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='lon',
+            field=models.FloatField(),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='nome',
+            field=models.CharField(max_length=150),
+        ),
+        migrations.AlterField(
+            model_name='local',
+            name='status',
+            field=models.CharField(blank=True, max_length=50, null=True),
+        ),
+    ]
+
+
+================================================================================
+ARQUIVO: core\migrations\0003_alter_escalatrabalho_options_and_more.py
+================================================================================
+
+# Generated by Django 6.1.1 on 2026-09-23 00:21
+
+import django.db.models.deletion
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('core', '0002_alter_atividade_options_alter_integrante_options_and_more'),
+    ]
+
+    operations = [
+        migrations.AlterModelOptions(
+            name='escalatrabalho',
+            options={'ordering': ['dia_semana', 'horario_inicio'], 'verbose_name': 'Escala de Trabalho', 'verbose_name_plural': 'Escalas de Trabalho'},
+        ),
+        migrations.RemoveField(
+            model_name='escalatrabalho',
+            name='dia',
+        ),
+        migrations.RemoveField(
+            model_name='escalatrabalho',
+            name='equipe',
+        ),
+        migrations.AddField(
+            model_name='escalatrabalho',
+            name='dia_semana',
+            field=models.CharField(blank=True, choices=[('Segunda-feira', 'Segunda-feira'), ('Terça-feira', 'Terça-feira'), ('Quarta-feira', 'Quarta-feira'), ('Quinta-feira', 'Quinta-feira'), ('Sexta-feira', 'Sexta-feira'), ('Sábado', 'Sábado'), ('Domingo', 'Domingo')], default='Segunda-feira', max_length=20, null=True, verbose_name='Dia da Semana'),
+        ),
+        migrations.AddField(
+            model_name='escalatrabalho',
+            name='horario_fim',
+            field=models.TimeField(blank=True, null=True, verbose_name='Horário de Término'),
+        ),
+        migrations.AddField(
+            model_name='escalatrabalho',
+            name='horario_inicio',
+            field=models.TimeField(blank=True, null=True, verbose_name='Horário de Início'),
+        ),
+        migrations.AddField(
+            model_name='escalatrabalho',
+            name='integrante',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='escalas', to='core.integrante', verbose_name='Integrante'),
+        ),
+        migrations.AddField(
+            model_name='escalatrabalho',
+            name='local',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='escalas', to='core.local', verbose_name='Local de Atuação'),
+        ),
+        migrations.AddField(
+            model_name='escalatrabalho',
+            name='observacoes',
+            field=models.TextField(blank=True, null=True, verbose_name='Observações'),
+        ),
+        migrations.AlterField(
+            model_name='escalatrabalho',
+            name='turno',
+            field=models.CharField(choices=[('Manhã', 'Manhã'), ('Tarde', 'Tarde'), ('Noite', 'Noite'), ('Integral', 'Integral')], default='Manhã', max_length=20, verbose_name='Turno'),
+        ),
+    ]
+
+
+================================================================================
+ARQUIVO: core\migrations\0004_usuarioautorizado.py
+================================================================================
+
+# Generated by Django 6.1.1 on 2026-09-23 00:34
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('core', '0003_alter_escalatrabalho_options_and_more'),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='UsuarioAutorizado',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('cpf', models.CharField(max_length=14, unique=True, verbose_name='CPF (Apenas números ou formatado)')),
+                ('email', models.EmailField(max_length=254, unique=True, verbose_name='E-mail Autorizado')),
+                ('nome', models.CharField(max_length=150, verbose_name='Nome Completo')),
+                ('ativo', models.BooleanField(default=True, verbose_name='Autorização Ativa')),
+            ],
+            options={
+                'verbose_name': 'Usuário Autorizado',
+                'verbose_name_plural': 'Usuários Autorizados (White-list)',
+            },
+        ),
+    ]
+
+
+================================================================================
+ARQUIVO: core\migrations\0005_perfil.py
+================================================================================
+
+# Generated by Django 6.1.1 on 2026-09-23 20:06
+
+import django.db.models.deletion
+from django.conf import settings
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ('core', '0004_usuarioautorizado'),
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name='Perfil',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('cpf', models.CharField(max_length=14, unique=True, verbose_name='CPF')),
+                ('data_nascimento', models.DateField(blank=True, null=True, verbose_name='Data de Nascimento')),
+                ('avatar', models.ImageField(blank=True, null=True, upload_to='avatares/', verbose_name='Foto de Perfil / Avatar')),
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='perfil', to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+    ]
+
+
+================================================================================
+ARQUIVO: core\migrations\__init__.py
+================================================================================
+
+
+
+================================================================================
+ARQUIVO: core\templates\core\base.html
+================================================================================
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AfirmaSUS-JP{% endblock %}</title>
+    
+    <!-- Bootstrap 5 & FontAwesome -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        html { scroll-behavior: smooth; }
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+        .header-bg { background-color: #481859; color: white; padding: 12px 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        
+        /* Barra Fina de Menu */
+        .subnav-bg { background-color: #381246; border-top: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 3px 8px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 1020; }
+        .subnav-link { color: #e0d4e5; font-size: 13px; font-weight: 500; text-decoration: none; padding: 6px 14px; border-radius: 4px; transition: all 0.2s ease; white-space: nowrap; }
+        .subnav-link:hover, .subnav-link.active { background-color: rgba(255, 255, 255, 0.18); color: #ffffff; font-weight: 600; }
+        
+        .footer-bg { background-color: #2c1234; color: #d0c4d6; padding: 20px 0; margin-top: auto; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- 1. Header Principal -->
+    <header class="header-bg">
+        <div class="container d-flex justify-content-between align-items-center">
+            
+            <!-- Branding: Logo Roxo + Título -->
+            <a href="{% url 'home' %}" class="text-white text-decoration-none d-flex align-items-center gap-3">
+                <img src="{% static 'logo_roxo.png' %}" alt="Logo AfirmaSUS" style="height: 68px; width: auto; object-fit: contain;">
+
+                <div>
+                    <h1 class="h4 m-0 font-weight-bold" style="line-height: 1.1;">AfirmaSUS–JP</h1>
+                    <small class="text-white-50 d-block" style="font-size: 11px;">Mapeamento Participativo do SUS no Território</small>
+                </div>
+            </a>
+
+            <!-- Autenticação / Perfil -->
+            <div class="d-flex align-items-center ms-auto">
+                {% if user.is_authenticated %}
+                    <div class="d-flex align-items-center me-3">
+                        {% if user.perfil and user.perfil.avatar %}
+                            <img src="{{ user.perfil.avatar.url }}" alt="{{ user.username }}" class="rounded-circle me-2 border border-2 border-white shadow-sm" style="width: 34px; height: 34px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-light text-primary fw-bold d-flex align-items-center justify-content-center me-2 shadow-sm" style="width: 34px; height: 34px; font-size: 13px;">
+                                {% if user.first_name %}{{ user.first_name|slice:":1"|upper }}{% else %}{{ user.username|slice:":1"|upper }}{% endif %}
+                            </div>
+                        {% endif %}
+
+                        <span class="text-white small fw-semibold" style="font-size: 13px;">
+                            Olá, {% if user.first_name %}{{ user.first_name }}{% else %}{{ user.username }}{% endif %}
+                        </span>
+                    </div>
+                    <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-light py-1 px-2" style="font-size: 12px;">Sair</a>
+                {% else %}
+                    <span class="text-white-50 small me-3 d-none d-md-inline" style="font-size: 12px;">Acesso Restrito para Edição</span>
+                    <a href="{% url 'login' %}" class="btn btn-sm btn-light fw-bold text-primary py-1 px-3" style="font-size: 12px;">Entrar</a>
+                {% endif %}
+            </div>
+
+        </div>
+    </header>
+
+    <!-- 2. Barra Fina Secundária para Navegação -->
+    {% include 'core/navbar.html' %}
+
+    <!-- Conteúdo Dinâmico -->
+    <main class="container mb-5">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-4" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="footer-bg text-center">
+        <div class="container">
+            <small>Projeto de Extensão AfirmaSUS-JP &copy; {% now "Y" %} — Desenvolvido em Python & Django</small>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+
+================================================================================
+ARQUIVO: core\templates\core\cadastro.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block title %}Cadastro - AfirmaSUS-JP{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 500px;">
+    <div class="card card-custom p-4">
+        <h4 class="fw-bold text-primary mb-2 text-center">🔐 Cadastro de Extensionista</h4>
+        <p class="text-muted small text-center mb-4">Insira seus dados. Seu CPF e E-mail serão validados na lista de membros autorizados.</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary w-100 fw-bold mt-3">Criar Minha Conta</button>
+        </form>
+
+        <hr class="my-4">
+        <p class="small text-center m-0">Já possui uma conta? <a href="{% url 'login' %}">Faça login</a></p>
+    </div>
+</div>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\confirmar_deletar_local.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Confirmar Exclusão</h2>
+    <p>Tem certeza que deseja excluir o local <strong>"{{ local.nome }}"</strong>?</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Sim, excluir</button>
+        <a href="{% url 'pagina_mapa' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\escala.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block title %}Escala e Calendário - AfirmaSUS-JP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">📅 Escala de Trabalho & Calendário</h3>
+        <p class="text-muted m-0">Acompanhe a distribuição dos integrantes nos territórios e cronograma de atividades.</p>
+    </div>
+    {% if user.is_authenticated %}
+        <a href="{% url 'cadastrar_escala' %}" class="btn btn-primary fw-bold">+ Nova Escala</a>
+    {% endif %}
+</div>
+
+<!-- Grade Semanal de Escalas -->
+<div class="card card-custom p-4 mb-4">
+    <h5 class="fw-bold text-primary mb-3">🗓️ Grade Semanal de Atuação</h5>
+    <div class="row g-3">
+        {% for dia, lista_escalas in escalas_por_dia.items %}
+            <div class="col-md-4 col-lg-3">
+                <div class="border rounded p-3 bg-light h-100">
+                    <h6 class="fw-bold text-secondary border-bottom pb-2">{{ dia }}</h6>
+                    {% for item in lista_escalas %}
+                        <div class="bg-white p-2 mb-2 rounded shadow-sm border-start border-4 border-primary">
+                            <strong class="d-block text-dark small">{{ item.integrante.nome }}</strong>
+                            <span class="badge bg-info text-dark me-1">{{ item.turno }}</span>
+                            <small class="text-muted d-block mt-1">📍 {{ item.local.nome }}</small>
+                            {% if item.horario_inicio %}
+                                <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
+                            {% endif %}
+                        </div>
+                    {% empty %}
+                        <span class="text-muted small italic">Sem escala.</span>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Lista de Atividades e Eventos -->
+<div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-primary m-0">📌 Próximos Eventos & Atividades</h5>
+        {% if user.is_authenticated %}
+            <a href="{% url 'cadastrar_atividade' %}" class="btn btn-sm btn-outline-primary">+ Nova Atividade</a>
+        {% endif %}
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Data</th>
+                    <th>Título</th>
+                    <th>Local</th>
+                    <th>Descrição</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ativ in atividades %}
+                    <tr>
+                        <td><span class="badge bg-secondary">{{ ativ.data|date:"d/m/Y" }}</span></td>
+                        <td><strong>{{ ativ.titulo }}</strong></td>
+                        <td>{{ ativ.local.nome|default:"Geral / Não especificado" }}</td>
+                        <td class="text-secondary small">{{ ativ.descricao|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-muted text-center py-3">Nenhuma atividade cadastrada.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\form_atividade.html
+================================================================================
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Atividade - AfirmaSUS-JP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5" style="max-width: 600px;">
+        <div class="card shadow-sm border-0 p-4">
+            <h4 class="mb-3 text-primary">📅 Cadastrar Nova Atividade</h4>
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'pagina_escala' %}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary fw-bold">Salvar Atividade</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
+================================================================================
+ARQUIVO: core\templates\core\form_escala.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block title %}Cadastrar Escala - AfirmaSUS-JP{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 600px;">
+    <div class="card card-custom p-4">
+        <h4 class="mb-3 text-primary fw-bold">➕ Cadastrar Escala de Trabalho</h4>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'pagina_escala' %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success fw-bold">Salvar Escala</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\form_local.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold m-0" style="color: #481859;">
+                        ✏️ {% if form.instance.pk %}Editar Local: {{ form.instance.nome }}{% else %}Cadastrar Novo Local{% endif %}
+                    </h5>
+                    <a href="{% url 'pagina_mapa' %}" class="btn btn-outline-secondary btn-sm rounded-3">
+                        ← Voltar ao Mapa
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold small text-secondary">Nome do Local</label>
+                                {{ form.nome }}
+                                {{ form.nome.errors }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-secondary">Distrito</label>
+                                {{ form.distrito }}
+                                {{ form.distrito.errors }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Categoria</label>
+                                {{ form.categoria }}
+                                {{ form.categoria.errors }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Status</label>
+                                {{ form.status }}
+                                {{ form.status.errors }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Latitude</label>
+                                {{ form.lat }}
+                                {{ form.lat.errors }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Longitude</label>
+                                {{ form.lon }}
+                                {{ form.lon.errors }}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">Foto (URL)</label>
+                                {{ form.foto }}
+                                {{ form.foto.errors }}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">Descrição</label>
+                                {{ form.descricao }}
+                                {{ form.descricao.errors }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-2 border-top">
+                            {% if form.instance.pk %}
+                                <a href="{% url 'deletar_local' form.instance.pk %}" 
+                                   class="btn btn-outline-danger btn-sm rounded-3"
+                                   onclick="return confirm('Tem certeza que deseja excluir este local?');">
+                                    🗑️ Excluir Local
+                                </a>
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'pagina_mapa' %}" class="btn btn-light border px-4 rounded-3">Cancelar</a>
+                                <button type="submit" class="btn btn-success fw-bold px-4 rounded-3">
+                                    💾 Salvar Alterações
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\home.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block extra_head %}
+<!-- CSS e JS Oficiais da TimelineJS 3 -->
+<link rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+<script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+
+<style>
+    /* ========================================================= */
+    /* 1. HERO SECTION (MODELO DRIBBBLE)                         */
+    /* ========================================================= */
+    .hero-section-dribbble {
+        position: relative;
+        width: 100%;
+        min-height: 85vh;
+        border-radius: 28px;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 3.5rem 3rem 2.5rem 3rem;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        margin-bottom: 3rem;
+    }
+
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(100deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.75) 45%, rgba(255,255,255,0.1) 85%);
+        z-index: 1;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .hero-title-main {
+        font-size: 3.8rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        line-height: 1.1;
+        letter-spacing: -1.5px;
+        max-width: 620px;
+    }
+
+    .floating-card-left {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        max-width: 460px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .floating-card-img {
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .btn-action-outline {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #1a1a1a;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 8px 18px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-action-outline:hover {
+        background: #481859;
+        color: #ffffff;
+        border-color: #481859;
+    }
+
+    .floating-call-right {
+        max-width: 320px;
+        text-align: left;
+    }
+
+    .btn-action-white {
+        background: #ffffff;
+        color: #1a1a1a;
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 12px 24px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.2s ease;
+    }
+
+    .btn-action-white:hover {
+        transform: translateY(-2px);
+        color: #481859;
+    }
+
+    .scroll-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ffffff;
+        padding: 8px 22px;
+        border-radius: 16px 16px 0 0;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #4a5568;
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+        z-index: 3;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ========================================================= */
+    /* 2. CARROSSEL EXPANSIVO DARK COM IMAGENS CORRIGIDAS        */
+    /* ========================================================= */
+    .atividades-dark-section {
+        background-color: #120617;
+        border-radius: 28px;
+        padding: 3rem 2.5rem;
+        color: #ffffff;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        margin-bottom: 3.5rem;
+    }
+
+    .atividades-gallery-container {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding: 1rem 0 1.5rem 0;
+        scrollbar-width: none;
+    }
+
+    .atividades-gallery-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Card com Efeito de Expansão no Hover */
+    .expand-card {
+        position: relative;
+        flex: 0 0 240px;
+        height: 480px;
+        border-radius: 20px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: flex 0.5s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s ease, box-shadow 0.3s ease;
+        background: #1a0a22;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Expandir Card no Hover */
+    .expand-card:hover {
+        flex: 0 0 440px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Imagem Unica de Fundo do Card */
+    .expand-card-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 1;
+        transition: transform 0.5s ease;
+    }
+
+    .expand-card:hover .expand-card-bg {
+        transform: scale(1.06);
+    }
+
+    /* Multi-Slider de Fotos no Card */
+    .expand-slider-multi {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+    .expand-slider-multi img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+    }
+
+    /* A primeira foto da lista fica visível por padrão */
+    .expand-slider-multi img:first-child {
+        opacity: 1;
+    }
+
+    /* Animação suave para trocar de imagem se houver mais de uma */
+    .expand-slider-multi img.active-slide {
+        opacity: 1 !important;
+    }
+
+    /* Layer de Gradiente Escuro sobre a foto */
+    .expand-card-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: linear-gradient(180deg, rgba(18, 6, 23, 0.1) 0%, rgba(18, 6, 23, 0.55) 50%, rgba(18, 6, 23, 0.95) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.8rem;
+    }
+
+    /* Título do Card */
+    .expand-card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.3rem;
+        line-height: 1.25;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* Detalhes que revelam ao passar o mouse */
+    .expand-card-details {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.45s ease, opacity 0.35s ease, margin-top 0.3s ease;
+    }
+
+    .expand-card:hover .expand-card-details {
+        max-height: 220px;
+        opacity: 1;
+        margin-top: 0.8rem;
+    }
+
+    .expand-card-date {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #d8b4fe;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 0.4rem;
+    }
+
+    .expand-card-desc {
+        font-size: 0.85rem;
+        color: #f1f5f9;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    /* Botões de Navegação Superior */
+    .gallery-nav-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .gallery-nav-btn:hover {
+        background: #ffffff;
+        color: #120617;
+    }
+
+    #timeline-embed {
+        width: 100%;
+        height: 600px;
+        border-radius: 0 0 24px 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+    <!-- ========================================================= -->
+    <!-- 1. HERO SECTION (MODELO DRIBBBLE)                         -->
+    <!-- ========================================================= -->
+    <section class="hero-section-dribbble" style="background-image: url('{{ url_foto_apresentacao }}');">
+        
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content mt-3">
+            <h1 class="hero-title-main">
+                Promovendo saúde, diversidade e cuidado no SUS.
+            </h1>
+        </div>
+
+        <div class="hero-content d-flex flex-column flex-md-row justify-content-between align-items-end gap-4 mt-5">
+            
+            <div class="floating-card-left d-flex align-items-center gap-3">
+                {% if url_logo_apresentacao %}
+                    <img src="{{ url_logo_apresentacao }}" class="floating-card-img" alt="Logo AfirmaSUS">
+                {% else %}
+                    <div class="bg-light rounded d-flex align-items-center justify-content-center floating-card-img text-muted small">Logo</div>
+                {% endif %}
+                <div class="d-flex flex-column justify-content-between h-100 py-1">
+                    <div>
+                        <h6 class="fw-bold mb-1 text-dark">Programa AfirmaSUS-JP</h6>
+                        <p class="text-secondary small mb-2" style="font-size: 0.8rem; line-height: 1.4;">
+                            Ações de permanência, diversidade e saúde mental no território São Rafael.
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{% url 'pagina_mapa' %}" class="btn-action-outline">
+                            Ver Território <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="floating-call-right">
+                <p class="text-dark small fw-semibold mb-3" style="line-height: 1.5;">
+                    Acompanhe o mapeamento participativo e o histórico das atividades comunitárias em tempo real.
+                </p>
+                <a href="#atividades-section" class="btn-action-white">
+                    Explorar Atividades <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+        </div>
+
+        <a href="#atividades-section" class="scroll-indicator">
+            Keep Scrolling <i class="fas fa-arrow-down"></i>
+        </a>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 2. LINHA DO TEMPO DE ATIVIDADES (CARROSSEL EXPANSIVO)     -->
+    <!-- ========================================================= -->
+    <section id="atividades-section" class="atividades-dark-section">
+        
+        <div class="d-flex align-items-end justify-content-between mb-4">
+            <div>
+                <span class="text-uppercase fw-bold small text-light opacity-75" style="letter-spacing: 1px;">Histórico Recente</span>
+                <h2 class="fw-bold m-0 mt-1" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+                    Linha do Tempo de Atividades
+                </h2>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <button class="gallery-nav-btn" onclick="scrollGallery(-320)" title="Anterior">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <button class="gallery-nav-btn" onclick="scrollGallery(320)" title="Próximo">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Container da Galeria de Cards Expansíveis -->
+        <div class="atividades-gallery-container" id="atividadesGallery">
+            {% if atividades_timeline %}
+                {% for ev in atividades_timeline %}
+                    <div class="expand-card">
+                        
+                        <!-- Imagem do Card -->
+                        {% if ev.fotos|length > 1 %}
+                            <div class="expand-slider-multi" id="slider-{{ forloop.counter }}">
+                                {% for foto_url in ev.fotos %}
+                                    <img src="{{ foto_url }}" alt="{{ ev.titulo }}" class="{% if forloop.first %}active-slide{% endif %}">
+                                {% endfor %}
+                            </div>
+                        {% elif ev.fotos|length == 1 %}
+                            <img src="{{ ev.fotos.0 }}" class="expand-card-bg" alt="{{ ev.titulo }}">
+                        {% elif ev.foto %}
+                            <img src="{{ ev.foto }}" class="expand-card-bg" alt="{{ ev.titulo }}">
+                        {% else %}
+                            <div class="d-flex align-items-center justify-content-center h-100 bg-secondary text-white-50">Sem foto</div>
+                        {% endif %}
+
+                        <!-- Conteúdo com Hover Reveal -->
+                        <div class="expand-card-overlay">
+                            <div class="expand-card-title">{{ ev.titulo }}</div>
+                            
+                            <div class="expand-card-details">
+                                <div class="expand-card-date">📅 {{ ev.data }}</div>
+                                <p class="expand-card-desc">{{ ev.descricao|truncatewords:25 }}</p>
+                            </div>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="expand-card">
+                    <div class="d-flex align-items-center justify-content-center h-100 text-white-50">Nenhuma atividade cadastrada.</div>
+                </div>
+            {% endif %}
+        </div>
+
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 3. LINHA DO TEMPO INTERATIVA (TimelineJS)                 -->
+    <!-- ========================================================= -->
+    <section class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+        <div class="p-4 border-bottom bg-white d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold m-0" style="color: #481859;">
+                ⏳ Linha do Tempo Geral do Projeto
+            </h5>
+            <span class="badge rounded-pill bg-light text-dark border">Histórico Geral</span>
+        </div>
+        <div class="p-0">
+            <div id="timeline-embed"></div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Rolagem lateral da galeria de cards
+    function scrollGallery(val) {
+        const container = document.getElementById('atividadesGallery');
+        if (container) {
+            container.scrollBy({ left: val, behavior: 'smooth' });
+        }
+    }
+
+    // Carrossel de imagens automático para cards com múltiplas fotos
+    document.addEventListener('DOMContentLoaded', function () {
+        const multiSliders = document.querySelectorAll('.expand-slider-multi');
+        
+        multiSliders.forEach(slider => {
+            const images = slider.querySelectorAll('img');
+            if (images.length > 1) {
+                let currentIndex = 0;
+                setInterval(() => {
+                    images[currentIndex].classList.remove('active-slide');
+                    currentIndex = (currentIndex + 1) % images.length;
+                    images[currentIndex].classList.add('active-slide');
+                }, 3500); // Troca a foto a cada 3.5s
+            }
+        });
+
+        // Inicialização do TimelineJS
+        const options = {
+            hash_bookmark: false,
+            initial_zoom: 2,
+            lang: 'pt'
+        };
+
+        try {
+            const timelineData = JSON.parse('{{ timeline_json|escapejs }}');
+            if (timelineData && Object.keys(timelineData).length > 0) {
+                window.timeline = new TL.Timeline('timeline-embed', timelineData, options);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar dados do TimelineJS:", e);
+        }
+    });
+</script>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\login.html
+================================================================================
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AfirmaSUS-JP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .card-login { width: 100%; max-width: 400px; padding: 30px; border-radius: 12px; border: none; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+    <div class="card card-login bg-white">
+        <h3 class="text-center mb-4" style="color: #4C2059;">🔒 Acesso Restrito</h3>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger py-2" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuário</label>
+                <input type="text" class="form-field form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-field form-control" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn w-100 text-white" style="background-color: #4C2059;">Entrar no Sistema</button>
+        </form>
+        
+        <div class="text-center mt-3">
+            <a href="{% url 'home' %}" class="text-secondary text-decoration-none small">← Voltar para a página inicial</a>
+        </div>
+    </div>
+
+</body>
+</html>
+
+================================================================================
+ARQUIVO: core\templates\core\mapa.html
+================================================================================
+
+{% extends 'core/base.html' %}
+
+{% block extra_head %}
+<!-- Leaflet.js CSS & JS NATIVOS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    .filter-buttons-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .btn-filter-chip {
+        border: none;
+        border-radius: 50px;
+        padding: 8px 18px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ffffff;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        transition: all 0.25s ease;
+        opacity: 0.75;
+    }
+
+    .btn-filter-chip:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        color: #ffffff;
+    }
+
+    .btn-filter-chip.active {
+        opacity: 1;
+        transform: scale(1.05);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+        outline: 2px solid #ffffff;
+    }
+
+    .btn-all-chip {
+        background-color: #481859;
+        color: #ffffff;
+    }
+
+    #mapa-leaflet {
+        width: 100%;
+        height: 620px;
+        border-radius: 16px;
+        z-index: 1;
+    }
+
+    .panel-details-body {
+        max-height: 550px;
+        overflow-y: auto;
+    }
+    
+    .panel-details-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .panel-details-body::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-2">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h5 class="fw-bold m-0" style="color: #481859;">🗺️ MAPA INTERATIVO</h5>
+            <span class="text-muted small">Clique diretamente em qualquer ponto no mapa para carregar as informações na barra lateral</span>
+        </div>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'cadastrar_local' %}" class="btn btn-success fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2" style="border-radius: 12px;">
+                <i class="fas fa-plus-circle"></i> + Novo Local
+            </a>
+        {% endif %}
+    </div>
+    
+    <!-- BARRA DE BOTÕES DE FILTRO COLORIDOS -->
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body p-3">
+            <div class="filter-buttons-container">
+                <a href="{% url 'pagina_mapa' %}?categoria=todos" 
+                   class="btn-filter-chip btn-all-chip {% if categoria_selecionada == 'todos' %}active{% endif %}">
+                    🌐 Todas as Categorias
+                </a>
+
+                {% for cat in lista_categorias %}
+                    <a href="{% url 'pagina_mapa' %}?categoria={{ cat.nome }}" 
+                       class="btn-filter-chip {% if categoria_selecionada == cat.nome %}active{% endif %}"
+                       style="background-color: {{ cat.cor_btn }};">
+                        <span>{{ cat.emoji }}</span> {{ cat.nome }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Div do Mapa -->
+        <div class="col-lg-8 mb-4 mb-lg-0">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div id="mapa-leaflet"></div>
+            </div>
+        </div>
+
+        <!-- Painel Lateral -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4" style="height: 620px;">
+                <div class="card-header bg-white fw-bold py-3 text-dark rounded-top-4 border-bottom d-flex align-items-center justify-content-between">
+                    <span>🖼️ Detalhes do Local</span>
+                    <span id="badge-categoria" class="badge bg-secondary">Selecione um ponto</span>
+                </div>
+                <div class="card-body panel-details-body" id="conteudo-detalhes">
+                    <div class="text-center text-muted py-5 mt-4">
+                        <i class="fas fa-map-marker-alt fa-3x mb-3 text-secondary opacity-50"></i>
+                        <p class="small">
+                            👈 Clique em qualquer marcador no mapa para abrir as fotos, diagnósticos e descrições do local.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var map = L.map('mapa-leaflet').setView([-7.13508, -34.85575], 16);
+
+        // Tile layer da Esri sem bloqueios
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+
+        var locais = {{ locais_json|safe }};
+
+        locais.forEach(function (loc) {
+            var corHex = loc.cor_hex || '#28a745';
+
+            var markerHtml = `<div style="
+                background-color: ${corHex};
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: 3px solid white;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            "></div>`;
+
+            var customIcon = L.divIcon({
+                html: markerHtml,
+                className: '',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            var marker = L.marker([loc.lat, loc.lon], { icon: customIcon }).addTo(map);
+            marker.bindTooltip(`<b>${loc.nome}</b> (${loc.categoria})`);
+
+            marker.on('click', function () {
+                renderizarPainelDetalhes(loc);
+            });
+        });
+    });
+
+    function converterLinkDriveJS(url) {
+        if (!url) return "";
+        var match = url.match(/(?:id=|\/d\/)([\w-]+)/);
+        if (match && match[1]) {
+            return "https://lh3.googleusercontent.com/d/" + match[1];
+        }
+        return url;
+    }
+
+    function renderizarPainelDetalhes(data) {
+        var container = document.getElementById('conteudo-detalhes');
+        var badgeCat = document.getElementById('badge-categoria');
+
+        if (badgeCat) {
+            badgeCat.innerText = data.categoria || 'Geral';
+            badgeCat.className = 'badge bg-primary';
+        }
+
+        var fotoUrl = converterLinkDriveJS(data.foto);
+        var imgHtml = fotoUrl 
+            ? `<img src="${fotoUrl}" class="img-fluid rounded-3 mb-3 shadow-sm" style="max-height: 200px; width:100%; object-fit:cover;">` 
+            : '';
+
+        var descricaoFormatada = (data.descricao || 'Sem descrição cadastrada.')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+
+        var escalasHtml = '';
+        if (data.escalas && data.escalas.length > 0) {
+            escalasHtml += `<h6 class="fw-bold text-dark mt-3 mb-2">👥 Integrantes Escalados:</h6><div class="list-group list-group-flush mb-3">`;
+            data.escalas.forEach(function(item) {
+                var fotoUser = item.foto 
+                    ? `<img src="${item.foto}" class="rounded-circle me-2" style="width:30px; height:30px; object-fit:cover;">`
+                    : `<div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center me-2" style="width:30px; height:30px; font-size:12px;">${item.nome.charAt(0)}</div>`;
+
+                escalasHtml += `
+                    <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between border-bottom">
+                        <div class="d-flex align-items-center">
+                            ${fotoUser}
+                            <div>
+                                <strong class="d-block text-dark small" style="line-height:1.2;">${item.nome}</strong>
+                                <small class="text-muted" style="font-size:11px;">${item.dia} - ${item.turno}</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-dark border" style="font-size:10px;">${item.horario}</span>
+                    </div>
+                `;
+            });
+            escalasHtml += `</div>`;
+        }
+
+        // Botão de edição (visível se autenticado)
+        var btnEditarHtml = isUserAuthenticated 
+            ? `<div class="mt-3 text-end">
+                    <a href="/local/${data.id}/editar/" class="btn btn-outline-warning text-dark btn-sm fw-bold px-3 py-1 shadow-sm rounded-3">
+                        ✏️ Editar Local
+                    </a>
+               </div>` 
+            : '';
+
+        container.innerHTML = `
+            <div class="text-start">
+                ${imgHtml}
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h4 class="fw-bold text-dark m-0">${data.nome}</h4>
+                </div>
+                <div class="mb-2">
+                    <span class="badge bg-light text-dark border me-1"><b>Categoria:</b> ${data.categoria}</span>
+                    <span class="badge bg-light text-dark border me-1"><b>Distrito:</b> ${data.distrito}</span>
+                    <span class="badge bg-warning text-dark border"><b>Status:</b> ${data.status}</span>
+                </div>
+                <hr class="my-2">
+                <div class="alert alert-light border small text-secondary p-3 mb-2" style="line-height: 1.6;">
+                    ${descricaoFormatada}
+                </div>
+                ${btnEditarHtml}
+                ${escalasHtml}
+            </div>
+        `;
+    }
+</script>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\midias.html
+================================================================================
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4">Mídias</h2>
+
+    <!-- Secção Formações -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Formações</h3>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFormacao">+ Adicionar Formação</button>
+        </div>
+        <div class="row">
+            {% for item in formacoes %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item.titulo }}</h5>
+                        <p class="card-text">{{ item.descricao }}</p>
+                        {% if item.link %}
+                        <a href="{{ item.link }}" target="_blank" class="btn btn-outline-primary btn-sm">Aceder</a>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer text-end">
+                        <form action="{% url 'remover_midia' 'formacao' item.id %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Confirmar remoção?');">Remover</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">Nenhuma formação registada.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <hr>
+
+    <!-- Secção Slides -->
+    <section class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>Slides</h3>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalSlide">+ Adicionar Slide</button>
+        </div>
+        <div class="row">
+            {% for item in apresentacoes %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ item.titulo }}</h5>
+                        <p class="card-text">{{ item.descricao }}</p>
+                        {% if item.link %}
+                        <a href="{{ item.link }}" target="_blank" class="btn btn-outline-primary btn-sm">Aceder Slide</a>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer text-end">
+                        <form action="{% url 'remover_midia' 'slide' item.id %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Confirmar remoção?');">Remover</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-muted">Nenhum slide registado.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<!-- Modal Adicionar Formação -->
+<div class="modal fade" id="modalFormacao" tabindex="-1">
+  <div class="modal-dialog">
+    <form action="{% url 'adicionar_midia' 'formacao' %}" method="POST" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">Adicionar Formação</h5></div>
+      <div class="modal-body">
+        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título" required>
+        <input type="url" name="link" class="form-control mb-2" placeholder="Link">
+        <textarea name="descricao" class="form-control" placeholder="Descrição"></textarea>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-success">Salvar</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Adicionar Slide -->
+<div class="modal fade" id="modalSlide" tabindex="-1">
+  <div class="modal-dialog">
+    <form action="{% url 'adicionar_midia' 'slide' %}" method="POST" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title">Adicionar Slide</h5></div>
+      <div class="modal-body">
+        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título" required>
+        <input type="url" name="link" class="form-control mb-2" placeholder="Link">
+        <textarea name="descricao" class="form-control" placeholder="Descrição"></textarea>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-success">Salvar</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+================================================================================
+ARQUIVO: core\templates\core\navbar.html
+================================================================================
+
+<nav class="subnav-bg py-1 mb-4">
+    <div class="container d-flex align-items-center gap-1 overflow-auto">
+        <a href="{% url 'home' %}" class="subnav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            📌 Apresentação
+        </a>
+        <a href="{% url 'pagina_mapa' %}" class="subnav-link {% if request.resolver_match.url_name == 'pagina_mapa' %}active{% endif %}">
+            🗺️ Mapa do Território
+        </a>
+        <a href="{% url 'pagina_escala' %}" class="subnav-link {% if request.resolver_match.url_name == 'pagina_escala' %}active{% endif %}">
+            📅 Escalas
+        </a>
+    </div>
+</nav>
+
+================================================================================
+ARQUIVO: core\views\auth_views.py
+================================================================================
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from ..forms import CadastroUsuarioForm  # ✅ Correto (sobe um nível para pegar o forms.py em core/)
+
+def fazer_login(request):
+    if request.method == 'POST':
+        usuario_input = request.POST.get('username')
+        senha_input = request.POST.get('password')
+        user = authenticate(request, username=usuario_input, password=senha_input)
+        if user is not None:
+            login(request, user)
+            messages.success(request, f"Bem-vindo(a), {user.first_name or user.username}!")
+            return redirect('home')
+        else:
+            messages.error(request, "Usuário ou senha inválidos.")
+    return render(request, 'core/login.html')
+
+def fazer_logout(request):
+    logout(request)
+    messages.info(request, "Você saiu da sua conta.")
+    return redirect('home')
+
+def cadastrar_usuario(request):
+    if request.method == 'POST':
+        form = CadastroUsuarioForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.set_password(form.cleaned_data['password'])
+            user.save()
+            messages.success(request, "Conta criada com sucesso! Agora você pode fazer login.")
+            return redirect('login')
+    else:
+        form = CadastroUsuarioForm()
+
+    return render(request, 'core/cadastro.html', {'form': form})
+
+================================================================================
+ARQUIVO: core\views\main_views.py
+================================================================================
+
+import os
+import json
+import folium
+import pandas as pd
+import plotly.express as px
+from django.shortcuts import render
+from django.conf import settings
+from ..models import Local, Atividade, Integrante, EscalaTrabalho
+from .utils import converter_link_drive
+
+# ---------------------------------------------------------
+# 1. ABA APRESENTAÇÃO (HOME)
+# ---------------------------------------------------------
+def home(request):
+    link_foto_apresentacao = "https://drive.google.com/file/d/1sXMf6Y3c5RKxT9Ss5DT6ZwlDh63BOtIj/view?usp=drive_link" 
+    link_logo_apresentacao = "https://drive.google.com/file/d/1YD1pFzwf_FLuvoZIP1R0oSrGh8XLghfC/view?usp=drive_link"
+
+    url_foto_apresentacao = converter_link_drive(link_foto_apresentacao)
+    url_logo_apresentacao = converter_link_drive(link_logo_apresentacao)
+
+    # Carregamento da Linha do Tempo Geral (JSON TimelineJS)
+    caminho_json = os.path.join(settings.BASE_DIR, 'linhadotempodinamica.json')
+    timeline_json_str = "{}"
+
+    if os.path.exists(caminho_json):
+        try:
+            with open(caminho_json, 'r', encoding='utf-8') as f:
+                dados_timeline = json.load(f)
+
+            if "title" in dados_timeline and "media" in dados_timeline["title"]:
+                if "url" in dados_timeline["title"]["media"]:
+                    dados_timeline["title"]["media"]["url"] = converter_link_drive(dados_timeline["title"]["media"]["url"])
+
+            if "events" in dados_timeline:
+                for evento in dados_timeline["events"]:
+                    if "media" in evento and "url" in evento["media"]:
+                        evento["media"]["url"] = converter_link_drive(evento["media"]["url"])
+
+            timeline_json_str = json.dumps(dados_timeline, ensure_ascii=False)
+        except Exception as e:
+            print(f"Erro ao processar linha do tempo geral: {e}")
+
+    # Carregamento da Linha do Tempo de Atividades (JSON local)
+    try:
+        with open("timeline.json", "r", encoding="utf-8") as f:
+            atividades_raw = json.load(f)
+            
+        atividades_timeline = []
+        for ev in atividades_raw:
+            lista_fotos = ev.get("fotos", [])
+            if not lista_fotos and ev.get("foto"):
+                lista_fotos = [ev["foto"]]
+                
+            ev["fotos"] = [converter_link_drive(f_url) for f_url in lista_fotos]
+            atividades_timeline.append(ev)
+    except Exception:
+        atividades_timeline = []
+
+    contexto = {
+        'atividades_timeline': atividades_timeline,
+        'url_foto_apresentacao': url_foto_apresentacao,
+        'url_logo_apresentacao': url_logo_apresentacao,
+        'timeline_json': timeline_json_str,
+    }
+    return render(request, 'core/home.html', contexto)
+
+
+# ---------------------------------------------------------
+# 2. ABA MAPA DO TERRITÓRIO
+# ---------------------------------------------------------
+# core/views/main_views.py
+
+import json
+from django.shortcuts import render
+from ..models import Local, Atividade, EscalaTrabalho
+
+
+def mapa_territorio(request):
+    locais = Local.objects.all()
+    atividades = Atividade.objects.select_related('local').all()
+    escalas = EscalaTrabalho.objects.select_related('integrante', 'local').all()
+
+    categoria_selecionada = request.GET.get('categoria', 'todos')
+    locais_filtrados = locais.filter(categoria=categoria_selecionada) if categoria_selecionada != 'todos' else locais
+
+    # Mapeamento com cores HEX diretas
+    MAPA_CATEGORIAS = {
+        'Saúde': {'emoji': '🟢', 'cor_btn': '#28a745', 'cor_hex': '#28a745'},
+        'Esporte e Lazer': {'emoji': '🟠', 'cor_btn': '#fd7e14', 'cor_hex': '#fd7e14'},
+        'Educação': {'emoji': '🟣', 'cor_btn': '#6f42c1', 'cor_hex': '#6f42c1'},
+        'Religião': {'emoji': '🔵', 'cor_btn': '#17a2b8', 'cor_hex': '#17a2b8'},
+        'Cultura': {'emoji': '🟡', 'cor_btn': '#ffc107', 'cor_hex': '#ffc107'},
+        'Comércio': {'emoji': '🔴', 'cor_btn': '#dc3545', 'cor_hex': '#dc3545'},
+        'Administrativo': {'emoji': '🩷', 'cor_btn': '#e83e8c', 'cor_hex': '#e83e8c'},
+    }
+
+    categorias_bd = sorted(list(set(locais.values_list('categoria', flat=True))))
+    lista_categorias = []
+    
+    for cat in categorias_bd:
+        meta = MAPA_CATEGORIAS.get(cat, {'emoji': '📍', 'cor_btn': '#481859', 'cor_hex': '#481859'})
+        lista_categorias.append({
+            'nome': cat,
+            'emoji': meta['emoji'],
+            'cor_btn': meta['cor_btn']
+        })
+
+    locais_json_list = []
+    for loc in locais_filtrados:
+        # Garante a validação de coordenadas numéricas
+        try:
+            lat_val = float(loc.lat)
+            lon_val = float(loc.lon)
+        except (ValueError, TypeError):
+            continue
+
+        escalas_local = [
+            {
+                'nome': esc.integrante.nome if esc.integrante else 'Integrante',
+                'foto': esc.integrante.foto_url_direta if esc.integrante else '',
+                'dia': esc.dia_semana,
+                'turno': esc.turno,
+                'horario': f"{esc.horario_inicio.strftime('%H:%M') if esc.horario_inicio else ''} - {esc.horario_fim.strftime('%H:%M') if esc.horario_fim else ''}"
+            } for esc in escalas.filter(local=loc)
+        ]
+
+        meta_cat = MAPA_CATEGORIAS.get(loc.categoria, {'cor_hex': '#6f42c1'})
+
+        locais_json_list.append({
+            'id': loc.id,
+            'nome': loc.nome,
+            'distrito': loc.distrito or 'Distrito I',
+            'categoria': loc.categoria,
+            'status': loc.status or 'Ativo',
+            'lat': lat_val,
+            'lon': lon_val,
+            'cor_hex': meta_cat['cor_hex'],
+            'descricao': loc.descricao or 'Sem descrição cadastrada.',
+            'foto': loc.foto_url_direta if hasattr(loc, 'foto_url_direta') and loc.foto_url_direta else (loc.foto or ''),
+            'escalas': escalas_local,
+        })
+
+    contexto = {
+        'lista_categorias': lista_categorias,
+        'categoria_selecionada': categoria_selecionada,
+        'locais_json': json.dumps(locais_json_list, ensure_ascii=False),
+    }
+    return render(request, 'core/mapa.html', contexto)
+
+
+# core/views/main_views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from ..models import Local
+from ..forms import LocalForm
+
+# core/views/main_views.py
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from ..models import Local
+from ..forms import LocalForm
+
+
+@login_required
+def editar_local(request, local_id):
+  local = get_object_or_404(Local, pk=local_id)
+
+  if request.method == 'POST':
+    form = LocalForm(request.POST, request.FILES, instance=local)
+    if form.is_valid():
+      form.save()  # Atualiza o Banco de Dados e o dados_locais.json
+      return redirect('pagina_mapa')
+  else:
+    form = LocalForm(instance=local)
+
+  contexto = {
+      'form': form,
+      'local': local,
+      'titulo': f'Editar Local: {local.nome}',
+  }
+  return render(request, 'core/form_local.html', contexto)
+
+@login_required
+def cadastrar_local(request):
+    if request.method == 'POST':
+        form = LocalForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('pagina_mapa')
+    else:
+        form = LocalForm()
+
+    contexto = {
+        'form': form,
+        'titulo': 'Cadastrar Novo Local',
+    }
+    return render(request, 'core/form_local.html', contexto)
+
+@login_required
+def deletar_local(request, local_id):
+    local = get_object_or_404(Local, pk=local_id)
+    
+    if request.method == 'POST':
+        local.delete()
+        return redirect('pagina_mapa')
+        
+    contexto = {
+        'local': local,
+        'titulo': f'Confirmar exclusão: {local.nome}',
+    }
+    return render(request, 'core/confirmar_deletar_local.html', contexto)
+
+
+from django.shortcuts import render
+
+def nova_aba_view(request):
+    return render(request, 'core/nova_aba.html')
+
+================================================================================
+ARQUIVO: core\views\management_views.py
+================================================================================
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from ..models import Local, Atividade, EscalaTrabalho
+from ..forms import LocalForm, AtividadeForm, EscalaForm
+
+@login_required
+def cadastrar_local(request):
+    if request.method == 'POST':
+        form = LocalForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Novo local cadastrado com sucesso no mapa!")
+            return redirect('pagina_mapa')
+    else:
+        form = LocalForm()
+
+    return render(request, 'core/form_local.html', {'form': form})
+
+@login_required
+def cadastrar_atividade(request):
+    if request.method == 'POST':
+        form = AtividadeForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Atividade cadastrada com sucesso!")
+            return redirect('pagina_escala')
+    else:
+        form = AtividadeForm()
+
+    return render(request, 'core/form_atividade.html', {'form': form})
+
+@login_required
+def deletar_local(request, local_id):
+    local = get_object_or_404(Local, pk=local_id)
+    local.delete()
+    messages.warning(request, "Local removido com sucesso do mapa.")
+    return redirect('pagina_mapa')
+
+def pagina_escala(request):
+    escalas = EscalaTrabalho.objects.select_related('integrante', 'local').all()
+    atividades = Atividade.objects.all().order_by('data')
+    
+    dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+    escalas_por_dia = {dia: escalas.filter(dia_semana=dia) for dia in dias}
+
+    context = {
+        'escalas_por_dia': escalas_por_dia,
+        'atividades': atividades,
+    }
+    return render(request, 'core/escala.html', context)
+
+@login_required
+def cadastrar_escala(request):
+    if request.method == 'POST':
+        form = EscalaForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Nova escala cadastrada com sucesso!")
+            return redirect('pagina_escala')
+    else:
+        form = EscalaForm()
+
+    return render(request, 'core/form_escala.html', {'form': form})
+
+================================================================================
+ARQUIVO: core\views\midias.py
+================================================================================
+
+import json
+import os
+from django.conf import settings
+from django.shortcuts import render, redirect
+
+# Caminhos para os arquivos JSON na raiz do projeto ou diretório base
+FORMACOES_PATH = os.path.join(settings.BASE_DIR, 'formacoes.json')
+APRESENTACOES_PATH = os.path.join(settings.BASE_DIR, 'apresentacoes.json')
+
+def ler_json(caminho):
+    if not os.path.exists(caminho):
+        return []
+    with open(caminho, 'r', encoding='utf-8') as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return []
+
+def salvar_json(caminho, dados):
+    with open(caminho, 'w', encoding='utf-8') as f:
+        json.dump(dados, f, ensure_ascii=False, indent=2)
+
+def midias(request):
+    formacoes = ler_json(FORMACOES_PATH)
+    apresentacoes = ler_json(APRESENTACOES_PATH)
+    
+    context = {
+        'formacoes': formacoes,
+        'apresentacoes': apresentacoes
+    }
+    return render(request, 'midias.html', context)
+
+def adicionar_midia(request):
+    if request.method == 'POST':
+        tipo = request.POST.get('tipo')
+        
+        if tipo == 'formacao':
+            titulo = request.POST.get('titulo')
+            foto = request.POST.get('foto')
+            
+            formacoes = ler_json(FORMACOES_PATH)
+            formacoes.append({'titulo': titulo, 'foto': foto})
+            salvar_json(FORMACOES_PATH, formacoes)
+            
+        elif tipo == 'apresentacao':
+            titulo = request.POST.get('titulo')
+            descricao = request.POST.get('descricao', '')
+            embed_url = request.POST.get('embed_url', '')
+            link_directo = request.POST.get('link_directo', '')
+            
+            apresentacoes = ler_json(APRESENTACOES_PATH)
+            apresentacoes.append({
+                'titulo': titulo,
+                'descricao': descricao,
+                'embed_url': embed_url,
+                'link_directo': link_directo
+            })
+            salvar_json(APRESENTACOES_PATH, apresentacoes)
+
+    return redirect('midias')
+
+def remover_midia(request):
+    if request.method == 'POST':
+        tipo = request.POST.get('tipo')
+        index = int(request.POST.get('index'))
+        
+        if tipo == 'formacao':
+            formacoes = ler_json(FORMACOES_PATH)
+            if 0 <= index < len(formacoes):
+                formacoes.pop(index)
+                salvar_json(FORMACOES_PATH, formacoes)
+                
+        elif tipo == 'apresentacao':
+            apresentacoes = ler_json(APRESENTACOES_PATH)
+            if 0 <= index < len(apresentacoes):
+                apresentacoes.pop(index)
+                salvar_json(APRESENTACOES_PATH, apresentacoes)
+
+    return redirect('midias')
+
+================================================================================
+ARQUIVO: core\views\utils.py
+================================================================================
+
+import re
+
+def converter_link_drive(url):
+    """ Converte link de visualização do Google Drive para link direto de imagem """
+    if not url:
+        return ""
+    # Extrai o ID do arquivo no Google Drive
+    match = re.search(r'(?:id=|\/d\/)([\w-]+)', url)
+    if match:
+        file_id = match.group(1)
+        return f"https://lh3.googleusercontent.com/d/{file_id}"
+    return url
+
+================================================================================
+ARQUIVO: core\views\__init__.py
+================================================================================
+
+# core/views/__init__.py
+
+from .utils import converter_link_drive
+from .auth_views import fazer_login, fazer_logout, cadastrar_usuario
+from .midias import midias, adicionar_midia, remover_midia
+from .main_views import home, mapa_territorio
+from .management_views import (
+    cadastrar_local,
+    cadastrar_atividade,
+    deletar_local,
+    pagina_escala,
+    cadastrar_escala,
+)
+
+================================================================================
+ARQUIVO: setup\asgi.py
+================================================================================
+
+"""
+ASGI config for setup project.
+
+It exposes the ASGI callable as a module-level variable named ``application``.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/6.1/howto/deployment/asgi/
+"""
+
+import os
+
+from django.core.asgi import get_asgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'setup.settings')
+
+application = get_asgi_application()
+
+
+================================================================================
+ARQUIVO: setup\settings.py
+================================================================================
+
+"""
+Django settings for setup project.
+
+Generated by 'django-admin startproject' using Django 6.1.1.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/6.1/topics/settings/
+
+For the full list of settings and their values, see
+https://docs.djangoproject.com/en/6.1/ref/settings/
+"""
+
+from pathlib import Path
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = 'django-insecure-d^9!lvabcza^s(fejv_4=bq9j8wb$ave$c)a(0#n2e=-g97^s2'
+
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = True
+
+ALLOWED_HOSTS = []
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    # Nosso aplicativo
+    'core',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'setup.urls'
+
+import os
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        # Certifique-se de que BASE_DIR / 'templates' está presente abaixo:
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'setup.wsgi.application'
+
+
+# Database
+# https://docs.djangoproject.com/en/6.1/ref/settings/#databases
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+
+# Password validation
+# https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+]
+
+
+# Internationalization
+# https://docs.djangoproject.com/en/6.1/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'UTC'
+
+USE_I18N = True
+
+USE_TZ = True
+
+
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/6.1/howto/static-files/
+
+STATIC_URL = 'static/'
+
+
+# Email
+# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+
+MAILERS = {
+    'default': {
+        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    },
+}
+
+
+import os
+
+# Configuração de Arquivos Estáticos (CSS, JS, Imagens do Sistema)
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
+# URL que aparecerá nos links do HTML (ex: http://127.0.0.1:8000/media/foto.jpg)
+MEDIA_URL = '/media/'
+
+# Caminho absoluto da pasta no computador/servidor
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+================================================================================
+ARQUIVO: setup\urls.py
+================================================================================
+
+"""
+URL configuration for setup project.
+
+The `urlpatterns` list routes URLs to views. For more information please see:
+    https://docs.djangoproject.com/en/6.1/topics/http/urls/
+Examples:
+Function views
+    1. Add an import:  from my_app import views
+    2. Add a URL to urlpatterns:  path('', views.home, name='home')
+Class-based views
+    1. Add an import:  from other_app.views import Home
+    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
+Including another URLconf
+    1. Import the include() function: from django.urls import include, path
+    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+"""
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('core.urls')),
+]
+
+# Libera o acesso às fotos de mídia em ambiente de desenvolvimento
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+================================================================================
+ARQUIVO: setup\wsgi.py
+================================================================================
+
+"""
+WSGI config for setup project.
+
+It exposes the WSGI callable as a module-level variable named ``application``.
+
+For more information on this file, see
+https://docs.djangoproject.com/en/6.1/howto/deployment/wsgi/
+"""
+
+import os
+
+from django.core.wsgi import get_wsgi_application
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'setup.settings')
+
+application = get_wsgi_application()
+
+
+================================================================================
+ARQUIVO: setup\__init__.py
+================================================================================
+
+

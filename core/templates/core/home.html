@@ -1,0 +1,486 @@
+{% extends 'core/base.html' %}
+
+{% block extra_head %}
+<!-- CSS e JS Oficiais da TimelineJS 3 -->
+<link rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+<script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+
+<style>
+    /* ========================================================= */
+    /* 1. HERO SECTION (MODELO DRIBBBLE)                         */
+    /* ========================================================= */
+    .hero-section-dribbble {
+        position: relative;
+        width: 100%;
+        min-height: 85vh;
+        border-radius: 28px;
+        overflow: hidden;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 3.5rem 3rem 2.5rem 3rem;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        margin-bottom: 3rem;
+    }
+
+    .hero-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(100deg, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.75) 45%, rgba(255,255,255,0.1) 85%);
+        z-index: 1;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .hero-title-main {
+        font-size: 3.8rem;
+        font-weight: 800;
+        color: #1a1a1a;
+        line-height: 1.1;
+        letter-spacing: -1.5px;
+        max-width: 620px;
+    }
+
+    .floating-card-left {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+        max-width: 460px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .floating-card-img {
+        width: 140px;
+        height: 140px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .btn-action-outline {
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #1a1a1a;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 8px 18px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-action-outline:hover {
+        background: #481859;
+        color: #ffffff;
+        border-color: #481859;
+    }
+
+    .floating-call-right {
+        max-width: 320px;
+        text-align: left;
+    }
+
+    .btn-action-white {
+        background: #ffffff;
+        color: #1a1a1a;
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 12px 24px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.2s ease;
+    }
+
+    .btn-action-white:hover {
+        transform: translateY(-2px);
+        color: #481859;
+    }
+
+    .scroll-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ffffff;
+        padding: 8px 22px;
+        border-radius: 16px 16px 0 0;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #4a5568;
+        box-shadow: 0 -4px 15px rgba(0,0,0,0.05);
+        z-index: 3;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* ========================================================= */
+    /* 2. CARROSSEL EXPANSIVO DARK COM IMAGENS CORRIGIDAS        */
+    /* ========================================================= */
+    .atividades-dark-section {
+        background-color: #120617;
+        border-radius: 28px;
+        padding: 3rem 2.5rem;
+        color: #ffffff;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        margin-bottom: 3.5rem;
+    }
+
+    .atividades-gallery-container {
+        display: flex;
+        gap: 16px;
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        padding: 1rem 0 1.5rem 0;
+        scrollbar-width: none;
+    }
+
+    .atividades-gallery-container::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Card com Efeito de Expansão no Hover */
+    .expand-card {
+        position: relative;
+        flex: 0 0 240px;
+        height: 480px;
+        border-radius: 20px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: flex 0.5s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s ease, box-shadow 0.3s ease;
+        background: #1a0a22;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Expandir Card no Hover */
+    .expand-card:hover {
+        flex: 0 0 440px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Imagem Unica de Fundo do Card */
+    .expand-card-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 1;
+        transition: transform 0.5s ease;
+    }
+
+    .expand-card:hover .expand-card-bg {
+        transform: scale(1.06);
+    }
+
+    /* Multi-Slider de Fotos no Card */
+    .expand-slider-multi {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+    }
+
+    .expand-slider-multi img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity 0.8s ease-in-out;
+    }
+
+    /* A primeira foto da lista fica visível por padrão */
+    .expand-slider-multi img:first-child {
+        opacity: 1;
+    }
+
+    /* Animação suave para trocar de imagem se houver mais de uma */
+    .expand-slider-multi img.active-slide {
+        opacity: 1 !important;
+    }
+
+    /* Layer de Gradiente Escuro sobre a foto */
+    .expand-card-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: linear-gradient(180deg, rgba(18, 6, 23, 0.1) 0%, rgba(18, 6, 23, 0.55) 50%, rgba(18, 6, 23, 0.95) 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 1.8rem;
+    }
+
+    /* Título do Card */
+    .expand-card-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.3rem;
+        line-height: 1.25;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    /* Detalhes que revelam ao passar o mouse */
+    .expand-card-details {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.45s ease, opacity 0.35s ease, margin-top 0.3s ease;
+    }
+
+    .expand-card:hover .expand-card-details {
+        max-height: 220px;
+        opacity: 1;
+        margin-top: 0.8rem;
+    }
+
+    .expand-card-date {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #d8b4fe;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 0.4rem;
+    }
+
+    .expand-card-desc {
+        font-size: 0.85rem;
+        color: #f1f5f9;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    /* Botões de Navegação Superior */
+    .gallery-nav-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .gallery-nav-btn:hover {
+        background: #ffffff;
+        color: #120617;
+    }
+
+    #timeline-embed {
+        width: 100%;
+        height: 600px;
+        border-radius: 0 0 24px 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+    <!-- ========================================================= -->
+    <!-- 1. HERO SECTION (MODELO DRIBBBLE)                         -->
+    <!-- ========================================================= -->
+    <section class="hero-section-dribbble" style="background-image: url('{{ url_foto_apresentacao }}');">
+        
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content mt-3">
+            <h1 class="hero-title-main">
+                Promovendo saúde, diversidade e cuidado no SUS.
+            </h1>
+        </div>
+
+        <div class="hero-content d-flex flex-column flex-md-row justify-content-between align-items-end gap-4 mt-5">
+            
+            <div class="floating-card-left d-flex align-items-center gap-3">
+                {% if url_logo_apresentacao %}
+                    <img src="{{ url_logo_apresentacao }}" class="floating-card-img" alt="Logo AfirmaSUS">
+                {% else %}
+                    <div class="bg-light rounded d-flex align-items-center justify-content-center floating-card-img text-muted small">Logo</div>
+                {% endif %}
+                <div class="d-flex flex-column justify-content-between h-100 py-1">
+                    <div>
+                        <h6 class="fw-bold mb-1 text-dark">Programa AfirmaSUS-JP</h6>
+                        <p class="text-secondary small mb-2" style="font-size: 0.8rem; line-height: 1.4;">
+                            Ações de permanência, diversidade e saúde mental no território São Rafael.
+                        </p>
+                    </div>
+                    <div>
+                        <a href="{% url 'pagina_mapa' %}" class="btn-action-outline">
+                            Ver Território <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="floating-call-right">
+                <p class="text-dark small fw-semibold mb-3" style="line-height: 1.5;">
+                    Acompanhe o mapeamento participativo e o histórico das atividades comunitárias em tempo real.
+                </p>
+                <a href="#atividades-section" class="btn-action-white">
+                    Explorar Atividades <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+
+        </div>
+
+        <a href="#atividades-section" class="scroll-indicator">
+            Keep Scrolling <i class="fas fa-arrow-down"></i>
+        </a>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 2. LINHA DO TEMPO DE ATIVIDADES (CARROSSEL EXPANSIVO)     -->
+    <!-- ========================================================= -->
+    <section id="atividades-section" class="atividades-dark-section">
+        
+        <div class="d-flex align-items-end justify-content-between mb-4">
+            <div>
+                <span class="text-uppercase fw-bold small text-light opacity-75" style="letter-spacing: 1px;">Histórico Recente</span>
+                <h2 class="fw-bold m-0 mt-1" style="font-size: 2.2rem; letter-spacing: -0.5px;">
+                    Linha do Tempo de Atividades
+                </h2>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+                <button class="gallery-nav-btn" onclick="scrollGallery(-320)" title="Anterior">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <button class="gallery-nav-btn" onclick="scrollGallery(320)" title="Próximo">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Container da Galeria de Cards Expansíveis -->
+        <div class="atividades-gallery-container" id="atividadesGallery">
+            {% if atividades_timeline %}
+                {% for ev in atividades_timeline %}
+                    <div class="expand-card">
+                        
+                        <!-- Imagem do Card -->
+                        {% if ev.fotos|length > 1 %}
+                            <div class="expand-slider-multi" id="slider-{{ forloop.counter }}">
+                                {% for foto_url in ev.fotos %}
+                                    <img src="{{ foto_url }}" alt="{{ ev.titulo }}" class="{% if forloop.first %}active-slide{% endif %}">
+                                {% endfor %}
+                            </div>
+                        {% elif ev.fotos|length == 1 %}
+                            <img src="{{ ev.fotos.0 }}" class="expand-card-bg" alt="{{ ev.titulo }}">
+                        {% elif ev.foto %}
+                            <img src="{{ ev.foto }}" class="expand-card-bg" alt="{{ ev.titulo }}">
+                        {% else %}
+                            <div class="d-flex align-items-center justify-content-center h-100 bg-secondary text-white-50">Sem foto</div>
+                        {% endif %}
+
+                        <!-- Conteúdo com Hover Reveal -->
+                        <div class="expand-card-overlay">
+                            <div class="expand-card-title">{{ ev.titulo }}</div>
+                            
+                            <div class="expand-card-details">
+                                <div class="expand-card-date">📅 {{ ev.data }}</div>
+                                <p class="expand-card-desc">{{ ev.descricao|truncatewords:25 }}</p>
+                            </div>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="expand-card">
+                    <div class="d-flex align-items-center justify-content-center h-100 text-white-50">Nenhuma atividade cadastrada.</div>
+                </div>
+            {% endif %}
+        </div>
+
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 3. LINHA DO TEMPO INTERATIVA (TimelineJS)                 -->
+    <!-- ========================================================= -->
+    <section class="card border-0 shadow-sm mb-4 rounded-4 overflow-hidden">
+        <div class="p-4 border-bottom bg-white d-flex align-items-center justify-content-between">
+            <h5 class="fw-bold m-0" style="color: #481859;">
+                ⏳ Linha do Tempo Geral do Projeto
+            </h5>
+            <span class="badge rounded-pill bg-light text-dark border">Histórico Geral</span>
+        </div>
+        <div class="p-0">
+            <div id="timeline-embed"></div>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Rolagem lateral da galeria de cards
+    function scrollGallery(val) {
+        const container = document.getElementById('atividadesGallery');
+        if (container) {
+            container.scrollBy({ left: val, behavior: 'smooth' });
+        }
+    }
+
+    // Carrossel de imagens automático para cards com múltiplas fotos
+    document.addEventListener('DOMContentLoaded', function () {
+        const multiSliders = document.querySelectorAll('.expand-slider-multi');
+        
+        multiSliders.forEach(slider => {
+            const images = slider.querySelectorAll('img');
+            if (images.length > 1) {
+                let currentIndex = 0;
+                setInterval(() => {
+                    images[currentIndex].classList.remove('active-slide');
+                    currentIndex = (currentIndex + 1) % images.length;
+                    images[currentIndex].classList.add('active-slide');
+                }, 3500); // Troca a foto a cada 3.5s
+            }
+        });
+
+        // Inicialização do TimelineJS
+        const options = {
+            hash_bookmark: false,
+            initial_zoom: 2,
+            lang: 'pt'
+        };
+
+        try {
+            const timelineData = JSON.parse('{{ timeline_json|escapejs }}');
+            if (timelineData && Object.keys(timelineData).length > 0) {
+                window.timeline = new TL.Timeline('timeline-embed', timelineData, options);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar dados do TimelineJS:", e);
+        }
+    });
+</script>
+{% endblock %}

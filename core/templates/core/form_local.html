@@ -1,0 +1,97 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="fw-bold m-0" style="color: #481859;">
+                        ✏️ {% if form.instance.pk %}Editar Local: {{ form.instance.nome }}{% else %}Cadastrar Novo Local{% endif %}
+                    </h5>
+                    <a href="{% url 'pagina_mapa' %}" class="btn btn-outline-secondary btn-sm rounded-3">
+                        ← Voltar ao Mapa
+                    </a>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold small text-secondary">Nome do Local</label>
+                                {{ form.nome }}
+                                {{ form.nome.errors }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-secondary">Distrito</label>
+                                {{ form.distrito }}
+                                {{ form.distrito.errors }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Categoria</label>
+                                {{ form.categoria }}
+                                {{ form.categoria.errors }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Status</label>
+                                {{ form.status }}
+                                {{ form.status.errors }}
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Latitude</label>
+                                {{ form.lat }}
+                                {{ form.lat.errors }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">Longitude</label>
+                                {{ form.lon }}
+                                {{ form.lon.errors }}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">Foto (URL)</label>
+                                {{ form.foto }}
+                                {{ form.foto.errors }}
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">Descrição</label>
+                                {{ form.descricao }}
+                                {{ form.descricao.errors }}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-4 pt-2 border-top">
+                            {% if form.instance.pk %}
+                                <a href="{% url 'deletar_local' form.instance.pk %}" 
+                                   class="btn btn-outline-danger btn-sm rounded-3"
+                                   onclick="return confirm('Tem certeza que deseja excluir este local?');">
+                                    🗑️ Excluir Local
+                                </a>
+                            {% else %}
+                                <div></div>
+                            {% endif %}
+
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'pagina_mapa' %}" class="btn btn-light border px-4 rounded-3">Cancelar</a>
+                                <button type="submit" class="btn btn-success fw-bold px-4 rounded-3">
+                                    💾 Salvar Alterações
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+[
+  {
+    "title": "Oficina de Cartografia Comunitária",
+    "start": "2026-04-10",
+    "end": "2026-04-10",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#FF8C00",
+    "textColor": "#ffffff"
+  },
+  {
+    "title": "Visita Técnica - Comunidade São Rafael",
+    "start": "2026-04-18",
+    "end": "2026-04-18",
+    "backgroundColor": "#28A745",
+    "borderColor": "#28A745",
+    "textColor": "#ffffff"
+  },
+  {
+    "title": "Reunião de Pauta",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Voltamos ao sofrimento."
+  },
+  {
+    "title": "Recepção ao Coordenador Geral AfirmaSUS-JP",
+    "start": "2026-09-03",
+    "end": "2026-09-03",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#FF8C00",
+    "textColor": "#ffffff",
+    "description": "8h - visita ao Território e UBS da comunidade São Rafael. // 10h - Encontro Geral e Apresentação do Projeto Afirmações JampaSUS. // 11h - Momento com Corpo Discente do AfirAções JampaSUS. // 12h - Almoço. // 13h - Momento com Corpo Docente do AfirAções JampaSUS. // 14:30h - Momento com a CLAA, Pró-Reitoria da PRAPE e PROEXT e GES/SMS // 16h - Devolutiva do Ministério da Saúde com Grupo AfirmAções JampaSUS."
+  },
+ 
+  {
+    "title": "Reunião de Pauta",
+    "start": "2026-09-07",
+    "end": "2026-09-07",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Mais um dia sem bolsa."
+  },
+ 
+  {
+    "title": "Finalização dos Slides da Apresentação Nacional",
+    "start": "2026-08-18",
+    "end": "2026-08-18",
+    "backgroundColor": "#F05763",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Thayane, Kennyo, Alex."
+  },
+ 
+  {
+    "title": "Consulta de ingresso de novos estudantes",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#F05763",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Alex: Enviar Google Forms para os estudantes aprovados na seleção para saber se querem ser voluntários."
+  },
+ 
+  {
+    "title": "Realização de Cursos Complementares",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Correspondente a carga horária do recesso. Plataforma AVASUS, FioCRUZ. Certificado comprovará as horas."
+  },
+ 
+  {
+    "title": "Conclusão dos Relatórios dos Subgrupos do 1º Encontro Comunitário de Saúde",
+    "start": "2026-09-07",
+    "end": "2026-09-07",
+    "backgroundColor": "#F05763",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Myrela, Álvaro e Alex."
+  },
+ 
+  {
+    "title": "Documentário Grupo Viva Vida",
+    "start": "2026-08-31",
+    "end": "2026-08-31",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Início da Produção. Convocação de parceiros do grupo."
+  },
+ 
+  {
+    "title": "Passeio na Bica Grupo Viva Vida",
+    "start": "2026-09-10",
+    "end": "2026-09-10",
+    "backgroundColor": "#FF8C00",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Passeio na Bica do Grupo Viva Vida em alusão ao setembro amarelo"
+  },
+ 
+  {
+    "title": "Reunião de Pauta",
+    "start": "2026-09-11",
+    "end": "2026-09-11",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Roda de Afirmações para definir estratégias de atuação do AfirmaSUS-JP no território em relação ao Bolsa Família, com a participação dos integrantes do programa."
+  },
+ 
+  {
+    "title": "Reunião de Pauta",
+    "start": "2026-09-18",
+    "end": "2026-09-18",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": "Devolutiva do Levantamento das Microáreas da Fernanda e Ismael. \n\nEncontro Unificado ENID - ENEX 2026 ( o que é e o que vamos escrever)\n\nAtualização do Geoprocessamento\n\nProposta de Formação/Ensino e Próximos Temas"
+  }
+  
+]

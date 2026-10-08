@@ -1,0 +1,54 @@
+[
+  {
+    "id": 1,
+    "nome": "Setor ACS Fernanda (Verde)",
+    "cor": "green",
+    "status": "pendente",
+    "descricao": "Ação de saúde realizada e concluída no setor Norte.",
+    "centroide": [-7.1332, -34.8548],
+    "vertices": [
+      [-7.133607, -34.855338],
+      [-7.134034, -34.854662],
+      [-7.131681, -34.853085],
+      [-7.131372, -34.853761],
+      [-7.133011, -34.855038]
+
+    ]
+  },
+  {
+    "id": 2,
+    "nome": "Setor ACS Ana Paula (Vermelho)",
+    "cor": "red",
+    "status": "concluido",
+    "descricao": "Ação de saúde pendente/em andamento no setor Centro.",
+    "centroide": [-7.1348, -34.8562],
+    "vertices": [
+      [-7.135544, -34.857323],
+      [-7.135321, -34.855628],
+      [-7.133799, -34.854952],
+      [-7.133607, -34.855338],
+      [-7.134395, -34.855703],
+      [-7.134321, -34.856379],
+      [-7.135257, -34.857849]
+
+    ]
+  },
+  {
+    "id": 3,
+    "nome": "Setor ACS Ismael (Azul)",
+    "cor": "blue",
+    "status": "pendente",
+    "descricao": "Ação de saúde realizada e concluída no setor Sul.",
+    "centroide": [-7.1355, -34.8558],
+    "vertices": [
+      [-7.135758, -34.857066],
+      [-7.135917, -34.856540],
+      [-7.135524, -34.855553],
+      [-7.136130, -34.854823],
+      [-7.134034, -34.854662],
+      [-7.134034, -34.854748],
+      [-7.135406, -34.855521],
+      [-7.135726, -34.857044]
+    ]
+  }
+]

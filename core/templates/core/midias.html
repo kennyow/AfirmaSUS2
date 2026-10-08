@@ -1,0 +1,271 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Formações e Mídias - AfirmaSUS-JP{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Container com Proporção Vertical para Formações */
+    .img-container-vertical {
+        width: 100%;
+        height: 380px;
+        background-color: #1c0d22;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .img-vertical {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    /* Container de Capa para Slides */
+    .slide-thumb-container {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(135deg, #481859 0%, #2c1234 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        text-align: center;
+        overflow: hidden;
+    }
+
+    .slide-thumb-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Container de iframe responsivo para Vídeos do YouTube */
+    .video-card-iframe-container {
+        position: relative;
+        width: 100%;
+        padding-top: 56.25%; /* Proporção 16:9 */
+        background-color: #000;
+        border-radius: 12px 12px 0 0;
+        overflow: hidden;
+    }
+
+    .video-card-iframe-container iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">🎓 Formações & Materiais</h3>
+            <p class="text-muted m-0">Acesse e gerencie o acervo de formações, apresentações e vídeos comunitários.</p>
+        </div>
+    </div>
+
+    <!-- 1. SEÇÃO FORMAÇÕES -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-primary m-0">📚 Formações</h4>
+            {% if user.is_authenticated %}
+                <button class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalFormacao">+ Adicionar Formação</button>
+            {% endif %}
+        </div>
+        <div class="row">
+            {% for item in formacoes %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                    <div class="img-container-vertical">
+                        {% if item.foto_url %}
+                            <img src="{{ item.foto_url }}" class="img-vertical" alt="{{ item.titulo }}">
+                        {% else %}
+                            <div class="text-white-50 text-center p-3">
+                                <i class="fas fa-book-open fa-3x mb-2 opacity-50"></i>
+                                <div class="small">Sem imagem de capa</div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body d-flex flex-column p-4">
+                        <h5 class="card-title fw-bold text-dark mb-2">{{ item.titulo }}</h5>
+                        <p class="card-text text-secondary small flex-grow-1" style="line-height: 1.5;">{{ item.descricao|default:"Sem descrição cadastrada." }}</p>
+                        {% if item.link %}
+                            <a href="{{ item.link }}" target="_blank" class="btn btn-outline-primary btn-sm mt-3 w-100 fw-bold rounded-3">
+                                🔗 Acessar Conteúdo
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% if user.is_authenticated %}
+                    <div class="card-footer bg-transparent border-0 text-end pb-3 pt-0 px-4">
+                        <form action="{% url 'remover_midia' 'formacao' forloop.counter0 %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" onclick="return confirm('Confirmar remoção desta formação?');">🗑️ Remover</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12"><p class="text-muted italic">Nenhuma formação registrada no arquivo JSON.</p></div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <hr class="my-5">
+
+    <!-- 2. SEÇÃO SLIDES -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-primary m-0">📊 Slides & Apresentações</h4>
+            {% if user.is_authenticated %}
+                <button class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalSlide">+ Adicionar Slide</button>
+            {% endif %}
+        </div>
+        <div class="row">
+            {% for item in apresentacoes %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                    <div class="slide-thumb-container">
+                        {% if item.foto_url %}
+                            <img src="{{ item.foto_url }}" class="slide-thumb-img" alt="{{ item.titulo }}">
+                        {% else %}
+                            <i class="fas fa-file-powerpoint text-white opacity-75 fa-3x mb-2"></i>
+                            <span class="badge bg-white text-dark fw-bold px-3 py-1 shadow-sm mb-1">Apresentação</span>
+                            <small class="text-white-50 px-2 text-truncate w-100">{{ item.titulo }}</small>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body d-flex flex-column p-4">
+                        <h5 class="card-title fw-bold text-dark mb-2">{{ item.titulo }}</h5>
+                        <p class="card-text text-secondary small flex-grow-1" style="line-height: 1.5;">{{ item.descricao|default:"Sem descrição cadastrada." }}</p>
+                        {% if item.link_url %}
+                            <a href="{{ item.link_url }}" target="_blank" class="btn btn-primary btn-sm mt-3 w-100 fw-bold rounded-3">
+                                🖥️ Abrir Apresentação
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% if user.is_authenticated %}
+                    <div class="card-footer bg-transparent border-0 text-end pb-3 pt-0 px-4">
+                        <form action="{% url 'remover_midia' 'slide' forloop.counter0 %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" onclick="return confirm('Confirmar remoção deste slide?');">🗑️ Remover</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12"><p class="text-muted italic">Nenhum slide registrado no arquivo JSON.</p></div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <hr class="my-5">
+
+    <!-- 3. SEÇÃO VÍDEOS DA COMUNIDADE -->
+    <section class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold text-primary m-0">🎥 Vídeos da Comunidade</h4>
+            {% if user.is_authenticated %}
+                <button class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalVideo">+ Adicionar Vídeo</button>
+            {% endif %}
+        </div>
+        <div class="row">
+            {% for vid in videos %}
+            <div class="col-md-6 col-lg-6 mb-4">
+                <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                    {% if vid.embed_url %}
+                        <div class="video-card-iframe-container">
+                            <iframe 
+                                src="{{ vid.embed_url }}" 
+                                title="{{ vid.titulo }}" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                referrerpolicy="strict-origin-when-cross-origin"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    {% else %}
+                        <div class="bg-dark text-white d-flex align-items-center justify-content-center p-5" style="height: 220px;">
+                            <i class="fab fa-youtube fa-3x text-danger"></i>
+                        </div>
+                    {% endif %}
+
+                    <div class="card-body d-flex flex-column p-4">
+                        <h5 class="card-title fw-bold text-dark mb-2">{{ vid.titulo }}</h5>
+                        <p class="card-text text-secondary small flex-grow-1" style="line-height: 1.5;">{{ vid.descricao|default:"Sem descrição cadastrada." }}</p>
+                    </div>
+                    {% if user.is_authenticated %}
+                    <div class="card-footer bg-transparent border-0 text-end pb-3 pt-0 px-4">
+                        <form action="{% url 'remover_midia' 'video' forloop.counter0 %}" method="POST" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" onclick="return confirm('Confirmar remoção deste vídeo?');">🗑️ Remover</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12"><p class="text-muted italic">Nenhum vídeo registrado no arquivo JSON.</p></div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<!-- Modal Adicionar Formação -->
+<div class="modal fade" id="modalFormacao" tabindex="-1">
+  <div class="modal-dialog">
+    <form action="{% url 'adicionar_midia' 'formacao' %}" method="POST" class="modal-content rounded-4">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title fw-bold">Adicionar Formação</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título da Formação" required>
+        <input type="url" name="foto" class="form-control mb-2" placeholder="Link da Imagem / Cartaz (Google Drive ou Web)">
+        <input type="url" name="link" class="form-control mb-2" placeholder="Link de Acesso (Ex: Drive, PDF, site)">
+        <textarea name="descricao" class="form-control" placeholder="Descrição rápida..."></textarea>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-success fw-bold">Salvar no JSON</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Adicionar Slide -->
+<div class="modal fade" id="modalSlide" tabindex="-1">
+  <div class="modal-dialog">
+    <form action="{% url 'adicionar_midia' 'slide' %}" method="POST" class="modal-content rounded-4">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title fw-bold">Adicionar Slide</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título do Slide/Apresentação" required>
+        <input type="url" name="foto" class="form-control mb-2" placeholder="Link da Imagem de Capa (Google Drive ou Imagem Externa)">
+        <input type="url" name="link" class="form-control mb-2" placeholder="Link do Slide (Canva, Google Slides, etc.)">
+        <textarea name="descricao" class="form-control" placeholder="Descrição rápida..."></textarea>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-success fw-bold">Salvar no JSON</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Adicionar Vídeo -->
+<div class="modal fade" id="modalVideo" tabindex="-1">
+  <div class="modal-dialog">
+    <form action="{% url 'adicionar_midia' 'video' %}" method="POST" class="modal-content rounded-4">
+      {% csrf_token %}
+      <div class="modal-header"><h5 class="modal-title fw-bold">Adicionar Vídeo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título do Vídeo" required>
+        <input type="url" name="link" class="form-control mb-2" placeholder="Link do YouTube (Ex: https://youtu.be/...)" required>
+        <textarea name="descricao" class="form-control" placeholder="Descrição rápida do vídeo..."></textarea>
+      </div>
+      <div class="modal-footer"><button type="submit" class="btn btn-success fw-bold">Salvar no JSON</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

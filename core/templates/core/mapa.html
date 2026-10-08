@@ -1,0 +1,260 @@
+{% extends 'core/base.html' %}
+
+{% block extra_head %}
+<!-- Leaflet.js CSS & JS NATIVOS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    .filter-buttons-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .btn-filter-chip {
+        border: none;
+        border-radius: 50px;
+        padding: 8px 18px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #ffffff;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        transition: all 0.25s ease;
+        opacity: 0.75;
+    }
+
+    .btn-filter-chip:hover {
+        opacity: 1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+        color: #ffffff;
+    }
+
+    .btn-filter-chip.active {
+        opacity: 1;
+        transform: scale(1.05);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+        outline: 2px solid #ffffff;
+    }
+
+    .btn-all-chip {
+        background-color: #481859;
+        color: #ffffff;
+    }
+
+    #mapa-leaflet {
+        width: 100%;
+        height: 620px;
+        border-radius: 16px;
+        z-index: 1;
+    }
+
+    .panel-details-body {
+        max-height: 550px;
+        overflow-y: auto;
+    }
+    
+    .panel-details-body::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .panel-details-body::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-2">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h5 class="fw-bold m-0" style="color: #481859;">🗺️ MAPA INTERATIVO</h5>
+            <span class="text-muted small">Clique diretamente em qualquer ponto no mapa para carregar as informações na barra lateral</span>
+        </div>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'cadastrar_local' %}" class="btn btn-success fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2" style="border-radius: 12px;">
+                <i class="fas fa-plus-circle"></i> + Novo Local
+            </a>
+        {% endif %}
+    </div>
+    
+    <!-- BARRA DE BOTÕES DE FILTRO COLORIDOS -->
+    <div class="card shadow-sm border-0 mb-4 rounded-4">
+        <div class="card-body p-3">
+            <div class="filter-buttons-container">
+                <a href="{% url 'pagina_mapa' %}?categoria=todos" 
+                   class="btn-filter-chip btn-all-chip {% if categoria_selecionada == 'todos' %}active{% endif %}">
+                    🌐 Todas as Categorias
+                </a>
+
+                {% for cat in lista_categorias %}
+                    <a href="{% url 'pagina_mapa' %}?categoria={{ cat.nome }}" 
+                       class="btn-filter-chip {% if categoria_selecionada == cat.nome %}active{% endif %}"
+                       style="background-color: {{ cat.cor_btn }};">
+                        <span>{{ cat.emoji }}</span> {{ cat.nome }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Div do Mapa -->
+        <div class="col-lg-8 mb-4 mb-lg-0">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                <div id="mapa-leaflet"></div>
+            </div>
+        </div>
+
+        <!-- Painel Lateral -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 rounded-4" style="height: 620px;">
+                <div class="card-header bg-white fw-bold py-3 text-dark rounded-top-4 border-bottom d-flex align-items-center justify-content-between">
+                    <span>🖼️ Detalhes do Local</span>
+                    <span id="badge-categoria" class="badge bg-secondary">Selecione um ponto</span>
+                </div>
+                <div class="card-body panel-details-body" id="conteudo-detalhes">
+                    <div class="text-center text-muted py-5 mt-4">
+                        <i class="fas fa-map-marker-alt fa-3x mb-3 text-secondary opacity-50"></i>
+                        <p class="small">
+                            👈 Clique em qualquer marcador no mapa para abrir as fotos, diagnósticos e descrições do local.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var map = L.map('mapa-leaflet').setView([-7.13508, -34.85575], 16);
+
+        // Tile layer da Esri sem bloqueios
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+
+        var locais = {{ locais_json|safe }};
+
+        locais.forEach(function (loc) {
+            var corHex = loc.cor_hex || '#28a745';
+
+            var markerHtml = `<div style="
+                background-color: ${corHex};
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: 3px solid white;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            "></div>`;
+
+            var customIcon = L.divIcon({
+                html: markerHtml,
+                className: '',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            var marker = L.marker([loc.lat, loc.lon], { icon: customIcon }).addTo(map);
+            marker.bindTooltip(`<b>${loc.nome}</b> (${loc.categoria})`);
+
+            marker.on('click', function () {
+                renderizarPainelDetalhes(loc);
+            });
+        });
+    });
+
+    function converterLinkDriveJS(url) {
+        if (!url) return "";
+        var match = url.match(/(?:id=|\/d\/)([\w-]+)/);
+        if (match && match[1]) {
+            return "https://lh3.googleusercontent.com/d/" + match[1];
+        }
+        return url;
+    }
+
+    function renderizarPainelDetalhes(data) {
+        var container = document.getElementById('conteudo-detalhes');
+        var badgeCat = document.getElementById('badge-categoria');
+
+        if (badgeCat) {
+            badgeCat.innerText = data.categoria || 'Geral';
+            badgeCat.className = 'badge bg-primary';
+        }
+
+        var fotoUrl = converterLinkDriveJS(data.foto);
+        var imgHtml = fotoUrl 
+            ? `<img src="${fotoUrl}" class="img-fluid rounded-3 mb-3 shadow-sm" style="max-height: 200px; width:100%; object-fit:cover;">` 
+            : '';
+
+        var descricaoFormatada = (data.descricao || 'Sem descrição cadastrada.')
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>');
+
+        var escalasHtml = '';
+        if (data.escalas && data.escalas.length > 0) {
+            escalasHtml += `<h6 class="fw-bold text-dark mt-3 mb-2">👥 Integrantes Escalados:</h6><div class="list-group list-group-flush mb-3">`;
+            data.escalas.forEach(function(item) {
+                var fotoUser = item.foto 
+                    ? `<img src="${item.foto}" class="rounded-circle me-2" style="width:30px; height:30px; object-fit:cover;">`
+                    : `<div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center me-2" style="width:30px; height:30px; font-size:12px;">${item.nome.charAt(0)}</div>`;
+
+                escalasHtml += `
+                    <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between border-bottom">
+                        <div class="d-flex align-items-center">
+                            ${fotoUser}
+                            <div>
+                                <strong class="d-block text-dark small" style="line-height:1.2;">${item.nome}</strong>
+                                <small class="text-muted" style="font-size:11px;">${item.dia} - ${item.turno}</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-light text-dark border" style="font-size:10px;">${item.horario}</span>
+                    </div>
+                `;
+            });
+            escalasHtml += `</div>`;
+        }
+
+        // Botão de edição (visível se autenticado)
+        var btnEditarHtml = isUserAuthenticated 
+            ? `<div class="mt-3 text-end">
+                    <a href="/local/${data.id}/editar/" class="btn btn-outline-warning text-dark btn-sm fw-bold px-3 py-1 shadow-sm rounded-3">
+                        ✏️ Editar Local
+                    </a>
+               </div>` 
+            : '';
+
+        container.innerHTML = `
+            <div class="text-start">
+                ${imgHtml}
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h4 class="fw-bold text-dark m-0">${data.nome}</h4>
+                </div>
+                <div class="mb-2">
+                    <span class="badge bg-light text-dark border me-1"><b>Categoria:</b> ${data.categoria}</span>
+                    <span class="badge bg-light text-dark border me-1"><b>Distrito:</b> ${data.distrito}</span>
+                    <span class="badge bg-warning text-dark border"><b>Status:</b> ${data.status}</span>
+                </div>
+                <hr class="my-2">
+                <div class="alert alert-light border small text-secondary p-3 mb-2" style="line-height: 1.6;">
+                    ${descricaoFormatada}
+                </div>
+                ${btnEditarHtml}
+                ${escalasHtml}
+            </div>
+        `;
+    }
+</script>
+{% endblock %}

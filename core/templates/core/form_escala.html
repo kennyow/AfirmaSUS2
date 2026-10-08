@@ -1,0 +1,19 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Cadastrar Escala - AfirmaSUS-JP{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 600px;">
+    <div class="card card-custom p-4">
+        <h4 class="mb-3 text-primary fw-bold">➕ Cadastrar Escala de Trabalho</h4>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'pagina_escala' %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success fw-bold">Salvar Escala</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
