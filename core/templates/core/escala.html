@@ -8,6 +8,20 @@
         min-height: 640px;
     }
 
+    #activities-calendar .fc-daygrid-day-number,
+    #activities-calendar .fc-col-header-cell-cushion {
+        color: #343a40;
+        font-weight: 700;
+    }
+
+    #activities-calendar .fc-toolbar-title {
+        text-transform: uppercase;
+    }
+
+    #calendar-event-description {
+        white-space: pre-wrap;
+    }
+
     .weekly-schedule-grid {
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -108,6 +122,11 @@
 <div class="card card-custom p-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold text-primary m-0">📅 Calendário de Atividades</h5>
+        {% if user.is_authenticated and not calendario_erro %}
+            <button type="button" class="btn btn-sm btn-outline-primary" id="open-calendar-note-modal">
+                + Adicionar nota
+            </button>
+        {% endif %}
     </div>
     {% if calendario_erro %}
         <div class="alert alert-warning mb-0" role="alert">{{ calendario_erro }}</div>
@@ -128,10 +147,77 @@
             <div class="modal-body">
                 <p class="fw-semibold mb-2" id="calendar-event-date"></p>
                 <p class="mb-0" id="calendar-event-description"></p>
+                {% if user.is_authenticated %}
+                    <button type="button" id="edit-calendar-event-button" class="btn btn-outline-primary btn-sm mt-3 d-none"
+                            data-url-template="{% url 'editar_nota_calendario' 'NOTE_ID' %}">
+                        Editar evento
+                    </button>
+                    <form method="POST" id="delete-calendar-note-form" class="mt-3 d-none"
+                          data-url-template="{% url 'deletar_nota_calendario' 'NOTE_ID' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Deseja excluir este evento?');">
+                            Excluir evento
+                        </button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+{% if user.is_authenticated %}
+<div class="modal fade" id="add-calendar-note-modal" tabindex="-1" aria-labelledby="add-calendar-note-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{% url 'adicionar_nota_calendario' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="add-calendar-note-title">Adicionar nota ao calendário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="calendar-note-date" class="form-label">Data</label>
+                    <input type="date" class="form-control mb-3" id="calendar-note-date" name="date" required>
+                    <label for="calendar-note-title" class="form-label">Título</label>
+                    <input type="text" class="form-control mb-3" id="calendar-note-title" name="title" maxlength="200" required>
+                    <label for="calendar-note-description" class="form-label">Descrição</label>
+                    <textarea class="form-control" id="calendar-note-description" name="description" rows="4"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar nota</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="edit-calendar-event-modal" tabindex="-1" aria-labelledby="edit-calendar-event-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" id="edit-calendar-event-form" data-url-template="{% url 'editar_nota_calendario' 'NOTE_ID' %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="edit-calendar-event-title">Editar evento do calendário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="edit-calendar-event-date" class="form-label">Data</label>
+                    <input type="date" class="form-control mb-3" id="edit-calendar-event-date" name="date" required>
+                    <label for="edit-calendar-event-name" class="form-label">Título</label>
+                    <input type="text" class="form-control mb-3" id="edit-calendar-event-name" name="title" maxlength="200" required>
+                    <label for="edit-calendar-event-description" class="form-label">Descrição</label>
+                    <textarea class="form-control" id="edit-calendar-event-description" name="description" rows="4"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}
 
@@ -160,6 +246,19 @@
                 week: 'Semana'
             },
             events: calendarEvents,
+            select: function (info) {
+                const dateInput = document.getElementById('calendar-note-date');
+                if (!dateInput) {
+                    return;
+                }
+                dateInput.value = info.startStr;
+                document.getElementById('calendar-note-title').value = '';
+                document.getElementById('calendar-note-description').value = '';
+                bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById('add-calendar-note-modal')
+                ).show();
+                calendar.unselect();
+            },
             eventClick: function (info) {
                 const eventDate = info.event.start;
                 document.getElementById('calendar-event-title').textContent = info.event.title;
@@ -168,12 +267,64 @@
                     : '';
                 document.getElementById('calendar-event-description').textContent =
                     info.event.extendedProps.description || 'Nenhuma descrição informada.';
+                const deleteForm = document.getElementById('delete-calendar-note-form');
+                if (deleteForm) {
+                    const isNote = Boolean(info.event.extendedProps.isNote);
+                    const editButton = document.getElementById('edit-calendar-event-button');
+                    deleteForm.classList.toggle('d-none', !isNote);
+                    editButton.classList.toggle('d-none', !isNote);
+                    if (isNote) {
+                        const encodedId = encodeURIComponent(info.event.id);
+                        deleteForm.action = deleteForm.dataset.urlTemplate.replace(
+                            'NOTE_ID',
+                            encodedId
+                        );
+                        editButton.dataset.eventId = info.event.id;
+                    }
+                }
                 bootstrap.Modal.getOrCreateInstance(
                     document.getElementById('calendar-event-modal')
                 ).show();
             }
         });
         calendar.render();
+
+        const openNoteButton = document.getElementById('open-calendar-note-modal');
+        if (openNoteButton) {
+            openNoteButton.addEventListener('click', function () {
+                const today = new Date();
+                today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+                document.getElementById('calendar-note-date').value = today.toISOString().slice(0, 10);
+                document.getElementById('calendar-note-title').value = '';
+                document.getElementById('calendar-note-description').value = '';
+                bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById('add-calendar-note-modal')
+                ).show();
+            });
+        }
+
+        const editButton = document.getElementById('edit-calendar-event-button');
+        if (editButton) {
+            editButton.addEventListener('click', function () {
+                const eventId = this.dataset.eventId;
+                const event = calendar.getEventById(eventId);
+                const form = document.getElementById('edit-calendar-event-form');
+                form.action = form.dataset.urlTemplate.replace(
+                    'NOTE_ID',
+                    encodeURIComponent(eventId)
+                );
+                document.getElementById('edit-calendar-event-date').value = event.startStr.slice(0, 10);
+                document.getElementById('edit-calendar-event-name').value = event.title;
+                document.getElementById('edit-calendar-event-description').value =
+                    event.extendedProps.description || '';
+                bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById('calendar-event-modal')
+                ).hide();
+                bootstrap.Modal.getOrCreateInstance(
+                    document.getElementById('edit-calendar-event-modal')
+                ).show();
+            });
+        }
     });
 </script>
 {% endif %}

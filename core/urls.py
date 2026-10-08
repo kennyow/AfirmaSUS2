@@ -20,6 +20,9 @@ urlpatterns = [
     path('atividade/nova/', views.cadastrar_atividade, name='cadastrar_atividade'),
     path('escala/nova/', views.cadastrar_escala, name='cadastrar_escala'),
     path('escala/deletar/<int:escala_id>/', views.deletar_escala, name='deletar_escala'),
+    path('escala/notas/adicionar/', views.adicionar_nota_calendario, name='adicionar_nota_calendario'),
+    path('escala/notas/<str:note_id>/deletar/', views.deletar_nota_calendario, name='deletar_nota_calendario'),
+    path('escala/notas/<str:note_id>/editar/', views.editar_nota_calendario, name='editar_nota_calendario'),
 
     # Mídias e Formações
     path('formacoes/', views.formacoes, name='formacoes'),

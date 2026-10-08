@@ -162,11 +162,12 @@ class EscalaTrabalhoTests(TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp_dir.cleanup)
-        self.calendario_path = Path(self.temp_dir.name) / 'calendario.json'
-        self.calendario_path.write_text('[]', encoding='utf-8')
-        calendario_patcher = patch.object(management_views, 'CALENDARIO_PATH', self.calendario_path)
-        calendario_patcher.start()
-        self.addCleanup(calendario_patcher.stop)
+        self.calendario_notas_path = Path(self.temp_dir.name) / 'calendario_notas.json'
+        notas_patcher = patch.object(
+            management_views, 'CALENDARIO_NOTAS_PATH', self.calendario_notas_path
+        )
+        notas_patcher.start()
+        self.addCleanup(notas_patcher.stop)
         usuario = get_user_model().objects.create_user(username='editor', password='senha-segura')
         self.client.force_login(usuario)
         self.escala = EscalaTrabalho.objects.create(
@@ -207,19 +208,15 @@ class EscalaTrabalhoTests(TestCase):
 
     def test_calendario_carrega_eventos_do_arquivo_json(self):
         eventos = [{
+            'id': 'evento-importado-calendario-001',
             'title': 'Atividade de teste',
             'start': '2026-10-12',
             'end': '2026-10-12',
             'backgroundColor': '#4C2059',
             'description': 'Detalhes do evento.',
         }]
-        with tempfile.TemporaryDirectory() as diretorio:
-            caminho_calendario = os.path.join(diretorio, 'calendario.json')
-            with open(caminho_calendario, 'w', encoding='utf-8') as arquivo:
-                json.dump(eventos, arquivo)
-
-            with patch.object(management_views, 'CALENDARIO_PATH', Path(caminho_calendario)):
-                resposta = self.client.get(reverse('pagina_escala'))
+        self.calendario_notas_path.write_text(json.dumps(eventos), encoding='utf-8')
+        resposta = self.client.get(reverse('pagina_escala'))
 
         self.assertEqual(resposta.status_code, 200)
         self.assertEqual(resposta.context['calendario_eventos'][0]['title'], 'Atividade de teste')
@@ -227,5 +224,91 @@ class EscalaTrabalhoTests(TestCase):
             resposta.context['calendario_eventos'][0]['extendedProps']['description'],
             'Detalhes do evento.',
         )
+        self.assertTrue(resposta.context['calendario_eventos'][0]['extendedProps']['isNote'])
         self.assertNotIn('end', resposta.context['calendario_eventos'][0])
         self.assertContains(resposta, 'activities-calendar')
+
+    def test_adiciona_nota_e_exibe_no_calendario(self):
+        resposta = self.client.post(
+            reverse('adicionar_nota_calendario'),
+            {
+                'date': '2026-10-12',
+                'title': 'Lembrete importante',
+                'description': 'Levar os materiais.',
+            },
+        )
+
+        self.assertRedirects(resposta, reverse('pagina_escala'))
+        notas = json.loads(self.calendario_notas_path.read_text(encoding='utf-8'))
+        self.assertEqual(len(notas), 1)
+        self.assertEqual(notas[0]['title'], 'Lembrete importante')
+
+        resposta = self.client.get(reverse('pagina_escala'))
+        nota_calendario = next(
+            evento for evento in resposta.context['calendario_eventos']
+            if evento.get('id') == notas[0]['id']
+        )
+        self.assertTrue(nota_calendario['extendedProps']['isNote'])
+        self.assertEqual(nota_calendario['backgroundColor'], '#381246')
+
+    def test_exclui_evento_importado_do_calendario(self):
+        self.calendario_notas_path.write_text(json.dumps([{
+            'id': 'evento-importado-calendario-001',
+            'title': 'Remover',
+            'start': '2026-10-12',
+            'description': '',
+        }]), encoding='utf-8')
+
+        resposta = self.client.post(
+            reverse('deletar_nota_calendario', args=['evento-importado-calendario-001'])
+        )
+
+        self.assertRedirects(resposta, reverse('pagina_escala'))
+        self.assertEqual(
+            json.loads(self.calendario_notas_path.read_text(encoding='utf-8')),
+            [],
+        )
+
+    def test_nao_permite_criar_nota_com_data_invalida(self):
+        resposta = self.client.post(
+            reverse('adicionar_nota_calendario'),
+            {'date': 'data-invalida', 'title': 'Teste', 'description': ''},
+        )
+
+        self.assertRedirects(resposta, reverse('pagina_escala'))
+        self.assertFalse(self.calendario_notas_path.exists())
+
+    def test_edita_evento_importado_mantendo_metadados_e_identificador(self):
+        evento_original = {
+            'id': 'evento-importado-calendario-001',
+            'title': 'Evento antes da edição',
+            'start': '2026-10-12',
+            'end': '2026-10-12',
+            'backgroundColor': '#FF8C00',
+            'borderColor': '#FF8C00',
+            'textColor': '#ffffff',
+            'description': 'Descrição antiga.',
+        }
+        self.calendario_notas_path.write_text(
+            json.dumps([evento_original]), encoding='utf-8'
+        )
+
+        resposta = self.client.post(
+            reverse('editar_nota_calendario', args=[evento_original['id']]),
+            {
+                'date': '2026-10-14',
+                'title': 'Evento atualizado',
+                'description': 'Nova descrição.',
+            },
+        )
+
+        self.assertRedirects(resposta, reverse('pagina_escala'))
+        evento_editado = json.loads(
+            self.calendario_notas_path.read_text(encoding='utf-8')
+        )[0]
+        self.assertEqual(evento_editado['id'], evento_original['id'])
+        self.assertEqual(evento_editado['title'], 'Evento atualizado')
+        self.assertEqual(evento_editado['start'], '2026-10-14')
+        self.assertEqual(evento_editado['end'], '2026-10-14')
+        self.assertEqual(evento_editado['description'], 'Nova descrição.')
+        self.assertEqual(evento_editado['backgroundColor'], '#FF8C00')

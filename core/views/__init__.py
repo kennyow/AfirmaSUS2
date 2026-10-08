@@ -11,4 +11,7 @@ from .management_views import (
     pagina_escala,
     cadastrar_escala,
     deletar_escala,
+    adicionar_nota_calendario,
+    deletar_nota_calendario,
+    editar_nota_calendario,
 )
