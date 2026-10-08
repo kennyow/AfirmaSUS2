@@ -9,8 +9,11 @@
         <a href="{% url 'pagina_escala' %}" class="subnav-link {% if request.resolver_match.url_name == 'pagina_escala' %}active{% endif %}">
             📅 Escalas
         </a>
-        <a href="{% url 'midias' %}" class="subnav-link {% if request.resolver_match.url_name == 'midias' %}active{% endif %}">
+        <a href="{% url 'formacoes' %}" class="subnav-link {% if request.resolver_match.url_name == 'formacoes' %}active{% endif %}">
             🎓 Formações
+        </a>
+        <a href="{% url 'midias' %}" class="subnav-link {% if request.resolver_match.url_name == 'midias' %}active{% endif %}">
+            🖼️ Mídias
         </a>
         <a href="{% url 'levantamento_estatistico' %}" class="subnav-link {% if request.resolver_match.url_name == 'levantamento_estatistico' %}active{% endif %}">
             📊 Levantamento Estatístico
