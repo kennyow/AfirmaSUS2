@@ -1,0 +1,65 @@
+.atas-page .atas-tabs .nav-link {
+    color: #481859;
+}
+
+.atas-page .atas-tabs .nav-link.active {
+    background-color: #481859;
+    color: #fff;
+}
+
+.ata-list-card {
+    border: 0;
+    border-left: 4px solid #481859;
+}
+
+.ata-list-card .card-body {
+    padding: 1.25rem;
+}
+
+#ata-editor > details,
+#ata-editor > section {
+    border: 0;
+    border-radius: 0.75rem;
+}
+
+#ata-editor > details > summary {
+    cursor: pointer;
+    list-style-position: inside;
+}
+
+.ata-repeat-row {
+    border: 1px solid #e2dce7;
+    border-radius: 0.65rem;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    background: #fff;
+}
+
+.ata-person-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 2rem;
+    background: #f0eaf3;
+    color: #381246;
+    padding: 0.35rem 0.6rem 0.35rem 0.85rem;
+    margin: 0.25rem;
+}
+
+.ata-person-chip button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    line-height: 1;
+}
+
+@media print {
+    .header-bg,
+    .subnav-bg,
+    .footer-bg,
+    .btn,
+    form,
+    #ata-save-state {
+        display: none !important;
+    }
+}

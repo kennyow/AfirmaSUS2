@@ -7,6 +7,22 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('mapa/', views.mapa_territorio, name='pagina_mapa'),
     path('escala/', views.pagina_escala, name='pagina_escala'),
+    path('equipe-informacoes/', views.equipe_informacoes, name='equipe_informacoes'),
+
+    # Atas de reunião
+    path('atas/', views.lista_atas, name='atas'),
+    path('atas/fila/', views.fila_atas, name='fila_atas'),
+    path('atas/lembretes/', views.lembretes_atas, name='lembretes_atas'),
+    path('atas/nova/', views.nova_ata, name='nova_ata'),
+    path('atas/exportar/', views.exportar_atas, name='exportar_atas'),
+    path('atas/<int:ata_id>/editar/', views.editar_ata, name='editar_ata'),
+    path('atas/<int:ata_id>/excluir/', views.excluir_ata, name='excluir_ata'),
+    path('atas/<int:ata_id>/fila/', views.alterar_fila_ata, name='alterar_fila_ata'),
+    path(
+        'atas/<int:ata_id>/acoes/<str:acao_id>/concluir/',
+        views.concluir_acao_ata,
+        name='concluir_acao_ata',
+    ),
 
     # Autenticação e Usuários
     path('login/', views.fazer_login, name='login'),

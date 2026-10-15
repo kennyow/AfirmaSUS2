@@ -6,7 +6,7 @@ import plotly.express as px
 from django.shortcuts import render, redirect
 from django.conf import settings
 from ..models import Local, Atividade, Integrante, EscalaTrabalho
-from .utils import converter_link_drive
+from .utils import converter_link_drive, ordenar_atividades_timeline
 
 
 from django.conf import settings
@@ -49,7 +49,8 @@ def home(request):
         caminho_timeline_atividades = os.path.join(settings.BASE_DIR, 'timeline.json')
         with open(caminho_timeline_atividades, "r", encoding="utf-8") as f:
             atividades_raw = json.load(f)
-            
+
+        atividades_raw = ordenar_atividades_timeline(atividades_raw)
         atividades_timeline = []
         for ev in atividades_raw:
             lista_fotos = ev.get("fotos", [])
@@ -68,6 +69,59 @@ def home(request):
         'timeline_json': timeline_json_str,
     }
     return render(request, 'core/home.html', contexto)
+
+
+def equipe_informacoes(request):
+    caminho_integrantes = os.path.join(settings.BASE_DIR, 'integrantes.json')
+    with open(caminho_integrantes, 'r', encoding='utf-8') as arquivo:
+        integrantes = json.load(arquivo)
+
+    equipe = []
+    for integrante in integrantes:
+        integrante = integrante.copy()
+        integrante['foto_url'] = converter_link_drive(integrante.get('foto', ''))
+        equipe.append(integrante)
+
+    plataformas = [
+        {
+            'nome': 'Ushahidi',
+            'descricao': 'Mapeamento colaborativo.',
+            'url': 'https://kennyow.ushahidi.io/map',
+            'logo_url': converter_link_drive(
+                'https://drive.google.com/file/d/1Y7DiHORMbXRFZfM-v3jTHC07aSl6sYse/view?usp=drive_link'
+            ),
+        },
+        {
+            'nome': 'Partimap',
+            'descricao': 'Cartografia comunitária.',
+            'url': 'https://www.partimap.eu/en/p/AfirmaSUSJP/0?force=1',
+            'logo_url': converter_link_drive(
+                'https://drive.google.com/file/d/1UJOoYTfH2HXFPEzPurd_gCE3qmqirWgp/view?usp=drive_link'
+            ),
+        },
+        {
+            'nome': 'ChronoFlo',
+            'descricao': 'Linha do tempo interativa.',
+            'url': 'https://www.chronoflotimeline.com/timeline/shared/32199/AfirmaSUS/',
+            'logo_url': converter_link_drive(
+                'https://drive.google.com/file/d/1z3b8OyQeX2PMXoCLO3g-_pFtsNdhUi0G/view?usp=drive_link'
+            ),
+        },
+        {
+            'nome': 'Instagram',
+            'descricao': 'Perfil oficial do projeto.',
+            'url': 'https://www.instagram.com/afirmasusjp/',
+            'logo_url': converter_link_drive(
+                'https://drive.google.com/file/d/1P6sTla2_5gbSwTpraremHHL9uGRAQ7Vp/view?usp=drive_link'
+            ),
+        },
+    ]
+
+    return render(
+        request,
+        'core/equipe_informacoes.html',
+        {'equipe': equipe, 'plataformas': plataformas},
+    )
 
 
 # ---------------------------------------------------------

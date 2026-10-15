@@ -9,6 +9,9 @@
         <a href="{% url 'pagina_escala' %}" class="subnav-link {% if request.resolver_match.url_name == 'pagina_escala' %}active{% endif %}">
             📅 Escalas
         </a>
+        <a href="{% url 'atas' %}" class="subnav-link {% if request.resolver_match.url_name == 'atas' or request.resolver_match.url_name == 'nova_ata' or request.resolver_match.url_name == 'editar_ata' or request.resolver_match.url_name == 'fila_atas' or request.resolver_match.url_name == 'lembretes_atas' or request.resolver_match.url_name == 'exportar_atas' or request.resolver_match.url_name == 'alterar_fila_ata' or request.resolver_match.url_name == 'concluir_acao_ata' or request.resolver_match.url_name == 'excluir_ata' %}active{% endif %}">
+            📝 Atas
+        </a>
         <a href="{% url 'formacoes' %}" class="subnav-link {% if request.resolver_match.url_name == 'formacoes' %}active{% endif %}">
             🎓 Formações
         </a>
@@ -17,6 +20,9 @@
         </a>
         <a href="{% url 'levantamento_estatistico' %}" class="subnav-link {% if request.resolver_match.url_name == 'levantamento_estatistico' %}active{% endif %}">
             📊 Levantamento Estatístico
+        </a>
+        <a href="{% url 'equipe_informacoes' %}" class="subnav-link {% if request.resolver_match.url_name == 'equipe_informacoes' %}active{% endif %}">
+            👥 Equipe e Informações
         </a>
     </div>
 </nav>

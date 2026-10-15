@@ -1,0 +1,188 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Atas de Reunião - AfirmaSUS-JP{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'core/atas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container my-4 atas-page">
+    <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">
+                {% if pagina_atas == 'lembretes' %}Lembretes das Atas
+                {% elif pagina_atas == 'fila' %}Fila de Exportação
+                {% else %}Atas de Reunião 👍{% endif %}
+            </h2>
+            <p class="text-muted mb-0">Registre, acompanhe e exporte as atas da equipe.</p>
+        </div>
+        {% if pagina_atas != 'lembretes' %}
+        <a href="{% url 'nova_ata' %}" class="btn btn-primary">
+            <i class="fa-solid fa-plus me-1" aria-hidden="true"></i> Nova ata
+        </a>
+        {% endif %}
+    </header>
+
+    <nav class="nav nav-pills atas-tabs mb-4" aria-label="Seções de atas">
+        <a class="nav-link {% if pagina_atas == 'lista' %}active{% endif %}" href="{% url 'atas' %}">Atas</a>
+        <a class="nav-link {% if pagina_atas == 'fila' %}active{% endif %}" href="{% url 'fila_atas' %}">
+            Fila de exportação
+        </a>
+        <a class="nav-link {% if pagina_atas == 'lembretes' %}active{% endif %}" href="{% url 'lembretes_atas' %}">
+            Lembretes
+            {% if total_lembretes %}<span class="badge text-bg-light ms-1">{{ total_lembretes }}</span>{% endif %}
+        </a>
+    </nav>
+
+    {% if pagina_atas == 'lembretes' %}
+        {% if tem_lembretes %}
+        <div class="d-flex justify-content-end mb-3">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-enable-notifications>
+                Ativar avisos neste navegador
+            </button>
+        </div>
+        {% for chave, titulo in grupos_lembretes.items %}
+            {% if titulo %}
+            <section class="mb-4">
+                <h3 class="h5 fw-bold {% if chave == 'atrasados' %}text-danger{% else %}text-primary{% endif %}">
+                    {% if chave == 'atrasados' %}Atrasados
+                    {% elif chave == 'hoje' %}Hoje
+                    {% elif chave == 'proximos' %}Próximos
+                    {% else %}Concluídos{% endif %}
+                    <span class="text-muted fw-normal">({{ titulo|length }})</span>
+                </h3>
+                <div class="row g-3">
+                    {% for lembrete in titulo %}
+                    <div class="col-12" data-reminder-at="{{ lembrete.instante|date:'c' }}">
+                        <article class="card shadow-sm">
+                            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div>
+                                    <p class="small text-primary fw-semibold mb-1">
+                                        {{ lembrete.instante|date:"d/m/Y · H:i" }}
+                                    </p>
+                                    <h4 class="h6 fw-bold mb-1">{{ lembrete.acao.tarefa|default:"Ação sem descrição" }}</h4>
+                                    <p class="text-muted small mb-1">
+                                        {% if lembrete.acao.responsavel %}{{ lembrete.acao.responsavel }} · {% endif %}
+                                        {{ lembrete.ata.titulo|default:"Ata sem título" }}
+                                    </p>
+                                    <a href="{% url 'editar_ata' lembrete.ata.pk %}#secao-acoes" class="small">Abrir ata</a>
+                                </div>
+                                {% if chave != 'concluidos' %}
+                                <form method="post" action="{% url 'concluir_acao_ata' lembrete.ata.pk lembrete.acao.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-success btn-sm" type="submit">Marcar concluída</button>
+                                </form>
+                                {% else %}
+                                <span class="badge text-bg-success">Concluída</span>
+                                {% endif %}
+                            </div>
+                        </article>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        {% endfor %}
+        {% else %}
+        <div class="alert alert-light border">Não há lembretes cadastrados nas ações das atas.</div>
+        {% endif %}
+    {% else %}
+        {% if pagina_atas == 'lista' %}
+        <form method="get" class="input-group mb-4" role="search">
+            <label for="busca-atas" class="visually-hidden">Buscar atas</label>
+            <input id="busca-atas" class="form-control" type="search" name="q" value="{{ consulta }}"
+                   placeholder="Buscar por tema, local, pessoa ou conteúdo">
+            <button class="btn btn-outline-secondary" type="submit">Buscar</button>
+            {% if consulta %}<a class="btn btn-outline-secondary" href="{% url 'atas' %}">Limpar</a>{% endif %}
+        </form>
+        {% endif %}
+
+        {% if pagina_atas == 'fila' and grupos %}
+        <form id="exportar-atas-form" method="post" action="{% url 'exportar_atas' %}" class="card card-body shadow-sm mb-4">
+            {% csrf_token %}
+            <h3 class="h5 fw-bold mb-3">Exportar atas selecionadas</h3>
+            <div class="d-flex flex-wrap gap-3 mb-3">
+                <label class="form-check-label"><input class="form-check-input me-1" type="checkbox" name="formatos" value="pdf" checked> PDF</label>
+                <label class="form-check-label"><input class="form-check-input me-1" type="checkbox" name="formatos" value="docx" checked> Word (.docx)</label>
+                <label class="form-check-label"><input class="form-check-input me-1" type="checkbox" name="formatos" value="xlsx" checked> Excel (.xlsx)</label>
+            </div>
+            <div class="d-flex flex-wrap align-items-end gap-3">
+                <div>
+                    <label for="modo-exportacao" class="form-label mb-1">Organização dos arquivos</label>
+                    <select id="modo-exportacao" name="modo" class="form-select form-select-sm">
+                        <option value="separado">Um arquivo por ata</option>
+                        <option value="juntos">Reunir atas por formato</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Gerar e baixar ZIP</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-select-all-atas>Selecionar todas</button>
+            </div>
+        </form>
+        {% endif %}
+
+        {% if grupos %}
+        {% for grupo in grupos %}
+        <section class="mb-4">
+            <h3 class="h5 fw-bold text-primary mb-3">{{ grupo.data|date:"d/m/Y" }}</h3>
+            <div class="row g-3">
+                {% for ata in grupo.atas %}
+                <div class="col-12">
+                    <article class="card shadow-sm ata-list-card">
+                        <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div class="d-flex align-items-start gap-3">
+                                {% if pagina_atas == 'fila' %}
+                                <input class="form-check-input mt-1 ata-export-checkbox" type="checkbox"
+                                       name="atas" value="{{ ata.pk }}" form="exportar-atas-form"
+                                       aria-label="Selecionar {{ ata.titulo|default:'Ata sem título' }}">
+                                {% endif %}
+                                <div>
+                                    <h4 class="h5 fw-bold mb-1">{{ ata.titulo|default:"Ata sem título" }}</h4>
+                                    <p class="text-muted small mb-2">
+                                        {% if ata.horario %}{{ ata.horario|time:"H:i" }} · {% endif %}
+                                        {% if ata.local %}{{ ata.local }} · {% endif %}
+                                        {% if ata.coordenador %}Coord.: {{ ata.coordenador }}{% endif %}
+                                    </p>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% if ata.na_fila %}<span class="badge text-bg-primary">Na fila</span>{% endif %}
+                                        {% if ata.exportada_em %}<span class="badge text-bg-success">Exportada</span>{% endif %}
+                                    </div>
+                                    <div class="progress mt-2" role="progressbar" aria-label="Preenchimento da ata"
+                                         aria-valuenow="{{ ata.progresso }}" aria-valuemin="0" aria-valuemax="100">
+                                        <div class="progress-bar bg-primary" style="width: {{ ata.progresso }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="{% url 'editar_ata' ata.pk %}" class="btn btn-outline-primary btn-sm">Abrir / editar</a>
+                                <form method="post" action="{% url 'alterar_fila_ata' ata.pk %}">
+                                    {% csrf_token %}
+                                    {% if pagina_atas == 'fila' %}<input type="hidden" name="origem" value="fila">{% endif %}
+                                    <button class="btn btn-outline-secondary btn-sm" type="submit">
+                                        {% if ata.na_fila %}Remover da fila{% else %}Pôr na fila{% endif %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'excluir_ata' ata.pk %}" data-confirm-delete>
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-danger btn-sm" type="submit">Excluir</button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endfor %}
+        {% else %}
+        <div class="alert alert-light border">
+            {% if pagina_atas == 'fila' %}A fila de exportação está vazia.
+            {% elif consulta %}Nenhuma ata corresponde à busca.
+            {% else %}Nenhuma ata cadastrada. Crie a primeira para começar.{% endif %}
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+<script src="{% static 'core/atas.js' %}" defer></script>
+{% endblock %}

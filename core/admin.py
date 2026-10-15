@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Local, Atividade, Integrante, EscalaTrabalho, UsuarioAutorizado
+from .models import AtaReuniao, Local, Atividade, Integrante, EscalaTrabalho, UsuarioAutorizado
 
 @admin.register(UsuarioAutorizado)
 class UsuarioAutorizadoAdmin(admin.ModelAdmin):
@@ -11,3 +11,10 @@ admin.site.register(Local)
 admin.site.register(Atividade)
 admin.site.register(Integrante)
 admin.site.register(EscalaTrabalho)
+
+
+@admin.register(AtaReuniao)
+class AtaReuniaoAdmin(admin.ModelAdmin):
+    list_display = ('titulo', 'data', 'local', 'na_fila', 'atualizada_em')
+    search_fields = ('titulo', 'local', 'coordenador', 'responsavel')
+    list_filter = ('na_fila', 'data')

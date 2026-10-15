@@ -10,9 +10,11 @@ from django.test import TestCase
 from django.urls import reverse
 
 from core.models import EscalaTrabalho
+from core.views.utils import ordenar_atividades_timeline
 
 
 midias_views = import_module('core.views.midias')
+main_views = import_module('core.views.main_views')
 management_views = import_module('core.views.management_views')
 
 
@@ -81,6 +83,22 @@ class LinhaDoTempoMidiasTests(TestCase):
         with open(self.timeline_path, encoding='utf-8') as arquivo:
             self.assertEqual(json.load(arquivo), [])
 
+    def test_remove_atividade_pelo_indice_da_lista_ordenada(self):
+        with open(self.timeline_path, 'w', encoding='utf-8') as arquivo:
+            json.dump([
+                {'data': 'Maio / 2026', 'titulo': 'Atividade antiga'},
+                {'data': 'Outubro 2026', 'titulo': 'Evento Canônico'},
+            ], arquivo)
+
+        resposta = self.client.post(
+            reverse('remover_midia', args=['timeline', 0])
+        )
+
+        self.assertRedirects(resposta, reverse('midias'))
+        with open(self.timeline_path, encoding='utf-8') as arquivo:
+            atividades = json.load(arquivo)
+        self.assertEqual([atividade['titulo'] for atividade in atividades], ['Atividade antiga'])
+
     def test_midias_mostra_atividades_sem_exibir_imagens(self):
         with open(self.timeline_path, 'w', encoding='utf-8') as arquivo:
             json.dump([{
@@ -97,6 +115,61 @@ class LinhaDoTempoMidiasTests(TestCase):
         self.assertContains(resposta, 'Linha do Tempo de Atividades')
         self.assertContains(resposta, 'Ação comunitária')
         self.assertNotContains(resposta, 'foto-privada.jpg')
+
+    def test_ordena_atividades_da_mais_recente_para_a_mais_antiga(self):
+        atividades = [
+            {'data': 'Setembro / 2026', 'titulo': 'Setembro 1'},
+            {'data': 'Março / 2026', 'titulo': 'Março 1'},
+            {'data': 'Agosto/ 2026', 'titulo': 'Agosto'},
+            {'data': 'Maio / 2026', 'titulo': 'Maio 1'},
+            {'data': 'Dezembro / 2025', 'titulo': 'Dezembro 2025'},
+            {'data': 'Dezembro - Hoje / 2026', 'titulo': 'Dezembro 2026'},
+            {'data': 'Junho / 2026', 'titulo': 'Junho'},
+            {'data': 'Outubro 2026', 'titulo': 'Outubro'},
+            {'data': 'Setembro / 2026', 'titulo': 'Setembro 2'},
+            {'data': 'Maio / 2026', 'titulo': 'Maio 2'},
+            {'data': 'data não informada', 'titulo': 'Sem data'},
+        ]
+
+        ordenadas = ordenar_atividades_timeline(atividades)
+
+        self.assertEqual(
+            [atividade['titulo'] for atividade in ordenadas],
+            [
+                'Dezembro 2026',
+                'Outubro',
+                'Setembro 1',
+                'Setembro 2',
+                'Agosto',
+                'Junho',
+                'Maio 1',
+                'Maio 2',
+                'Março 1',
+                'Dezembro 2025',
+                'Sem data',
+            ],
+        )
+
+    def test_home_exibe_atividades_em_ordem_cronologica_decrescente(self):
+        atividades = [
+            {'data': 'Maio / 2026', 'titulo': 'Atividade antiga', 'fotos': []},
+            {'data': 'Outubro 2026', 'titulo': 'Atividade recente', 'fotos': []},
+        ]
+        with open(self.timeline_path, 'w', encoding='utf-8') as arquivo:
+            json.dump(atividades, arquivo)
+        base_dir_patcher = patch.object(
+            main_views.settings, 'BASE_DIR', Path(self.temp_dir.name)
+        )
+        base_dir_patcher.start()
+        self.addCleanup(base_dir_patcher.stop)
+
+        resposta = self.client.get(reverse('home'))
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(
+            [atividade['titulo'] for atividade in resposta.context['atividades_timeline']],
+            ['Atividade recente', 'Atividade antiga'],
+        )
 
     def test_formacoes_continua_em_pagina_separada(self):
         resposta = self.client.get(reverse('formacoes'))
@@ -156,6 +229,69 @@ class LinhaDoTempoMidiasTests(TestCase):
             dados = json.load(arquivo)
         self.assertEqual(dados['title'], {'text': {'headline': 'Linha do tempo'}})
         self.assertEqual(dados['events'], [{'text': {'headline': 'Manter'}}])
+
+
+class EquipeInformacoesTests(TestCase):
+    def test_pagina_exibe_integrantes_e_secao_informacoes(self):
+        resposta = self.client.get(reverse('equipe_informacoes'))
+
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'Equipe e Informações')
+        self.assertContains(resposta, 'Alex Sávio')
+        self.assertContains(resposta, 'Enfermagem')
+        self.assertContains(resposta, 'Bolsista')
+        self.assertContains(resposta, 'Informações')
+        self.assertContains(
+            resposta,
+            'https://lh3.googleusercontent.com/d/11cHCxNlrG0Dbse4yOFW_ZPG9kDGYT4X9',
+        )
+
+    def test_pagina_exibe_plataformas_com_links_e_logos(self):
+        resposta = self.client.get(reverse('equipe_informacoes'))
+
+        self.assertEqual(resposta.status_code, 200)
+        plataformas_esperadas = {
+            'Ushahidi': (
+                'https://kennyow.ushahidi.io/map',
+                'https://lh3.googleusercontent.com/d/1Y7DiHORMbXRFZfM-v3jTHC07aSl6sYse',
+                'Mapeamento colaborativo.',
+            ),
+            'Partimap': (
+                'https://www.partimap.eu/en/p/AfirmaSUSJP/0?force=1',
+                'https://lh3.googleusercontent.com/d/1UJOoYTfH2HXFPEzPurd_gCE3qmqirWgp',
+                'Cartografia comunitária.',
+            ),
+            'ChronoFlo': (
+                'https://www.chronoflotimeline.com/timeline/shared/32199/AfirmaSUS/',
+                'https://lh3.googleusercontent.com/d/1z3b8OyQeX2PMXoCLO3g-_pFtsNdhUi0G',
+                'Linha do tempo interativa.',
+            ),
+            'Instagram': (
+                'https://www.instagram.com/afirmasusjp/',
+                'https://lh3.googleusercontent.com/d/1P6sTla2_5gbSwTpraremHHL9uGRAQ7Vp',
+                'Perfil oficial do projeto.',
+            ),
+        }
+
+        for nome, (url, logo_url, descricao) in plataformas_esperadas.items():
+            with self.subTest(plataforma=nome):
+                self.assertContains(resposta, nome)
+                self.assertContains(resposta, url)
+                self.assertContains(resposta, logo_url)
+                self.assertContains(resposta, descricao)
+
+        self.assertContains(resposta, 'rel="noopener noreferrer"')
+        self.assertContains(resposta, 'target="_blank"')
+
+    def test_nova_aba_aparece_na_navegacao_como_ativa(self):
+        resposta = self.client.get(reverse('equipe_informacoes'))
+
+        self.assertContains(
+            resposta,
+            'class="subnav-link active"',
+            html=False,
+        )
+        self.assertContains(resposta, '👥 Equipe e Informações')
 
 
 class EscalaTrabalhoTests(TestCase):

@@ -1,0 +1,161 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{% if ata %}Editar{% else %}Nova{% endif %} Ata - AfirmaSUS-JP{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'core/atas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container my-4 atas-page">
+    <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">{% if ata %}{{ ata.titulo|default:"Ata sem título" }}{% else %}Nova ata{% endif %}</h2>
+            <p class="text-muted mb-0">Os dados são compartilhados com os demais usuários autenticados.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{% url 'atas' %}">Voltar para atas</a>
+    </header>
+
+    {% if form.errors %}
+    <div class="alert alert-danger" role="alert">
+        <strong>Não foi possível salvar a ata.</strong>
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            {% if field.errors %}<div>{{ field.label }}: {{ field.errors|striptags }}</div>{% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" id="ata-editor" action="{% if ata %}{% url 'editar_ata' ata.pk %}{% else %}{% url 'nova_ata' %}{% endif %}">
+        {% csrf_token %}
+        {{ form.conteudo }}
+        <p class="small text-muted" aria-live="polite" id="ata-save-state">Alterações salvas automaticamente.</p>
+
+        <section class="card card-body shadow-sm mb-4">
+            <h3 class="h5 fw-bold text-primary mb-3">1. Informações gerais</h3>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.titulo.id_for_label }}">Tema / título principal</label>
+                    {{ form.titulo }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.data.id_for_label }}">Data</label>
+                    {{ form.data }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.horario.id_for_label }}">Horário</label>
+                    <div class="input-group">
+                        {{ form.horario }}
+                        <button class="btn btn-outline-secondary" type="button" data-set-current-time>Agora</button>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="{{ form.local.id_for_label }}">Local / Plataforma</label>
+                    {{ form.local }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.coordenador.id_for_label }}">Coordenador geral</label>
+                    {{ form.coordenador }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="{{ form.responsavel.id_for_label }}">Responsável pela ata</label>
+                    {{ form.responsavel }}
+                </div>
+            </div>
+        </section>
+
+        <details class="card card-body shadow-sm mb-3" open>
+            <summary class="h5 fw-bold text-primary">2. Tema da reunião</summary>
+            <p class="mt-3 mb-0">O tema registrado acima será usado como título da ata.</p>
+        </details>
+
+        <details class="card card-body shadow-sm mb-3" open>
+            <summary class="h5 fw-bold text-primary">3. Participantes</summary>
+            <div class="row g-4 mt-1">
+                <div class="col-lg-6">
+                    <h4 class="h6 fw-bold">Presentes</h4>
+                    <div data-people-list="presentes"></div>
+                </div>
+                <div class="col-lg-6">
+                    <h4 class="h6 fw-bold">Ausentes</h4>
+                    <div data-people-list="ausentes"></div>
+                </div>
+            </div>
+        </details>
+
+        <details class="card card-body shadow-sm mb-3" open>
+            <summary class="h5 fw-bold text-primary">4. Assuntos discutidos</summary>
+            <div class="mt-3" data-repeat-list="assuntos"></div>
+            <button class="btn btn-outline-primary btn-sm mt-2" type="button" data-add-row="assuntos">Adicionar assunto</button>
+            <label class="form-label mt-3" for="assuntos-observacoes">Observações</label>
+            <textarea class="form-control" id="assuntos-observacoes" data-content-field="assuntos.observacoes" rows="3"></textarea>
+        </details>
+
+        <details class="card card-body shadow-sm mb-3" open>
+            <summary class="h5 fw-bold text-primary">5. Decisões tomadas</summary>
+            <div class="mt-3" data-repeat-list="decisoes"></div>
+            <button class="btn btn-outline-primary btn-sm mt-2" type="button" data-add-row="decisoes">Adicionar decisão</button>
+            <label class="form-label mt-3" for="decisoes-justificativas">Justificativas</label>
+            <textarea class="form-control" id="decisoes-justificativas" data-content-field="decisoes.justificativas" rows="3"></textarea>
+        </details>
+
+        <details class="card card-body shadow-sm mb-3" id="secao-acoes" open>
+            <summary class="h5 fw-bold text-primary">6. Ações definidas</summary>
+            <div class="mt-3" data-repeat-list="acoes"></div>
+            <button class="btn btn-outline-primary btn-sm mt-2" type="button" data-add-row="acoes">Adicionar ação</button>
+        </details>
+
+        <details class="card card-body shadow-sm mb-3" open>
+            <summary class="h5 fw-bold text-primary">7. Pendências</summary>
+            <div class="mt-3" data-repeat-list="pendencias"></div>
+            <button class="btn btn-outline-primary btn-sm mt-2" type="button" data-add-row="pendencias">Adicionar pendência</button>
+            <label class="form-label mt-3" for="proximos-passos">Próximos passos</label>
+            <textarea class="form-control" id="proximos-passos" data-content-field="pendencias.proximos_passos" rows="3"></textarea>
+        </details>
+
+        <details class="card card-body shadow-sm mb-3" open>
+            <summary class="h5 fw-bold text-primary">8. Encerramento</summary>
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <label class="form-label" for="horario-termino">Horário de término</label>
+                    <input class="form-control" id="horario-termino" type="time" data-content-field="encerramento.horario_termino">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="proxima-reuniao">Data da próxima reunião</label>
+                    <input class="form-control" id="proxima-reuniao" type="date" data-content-field="encerramento.proxima_reuniao">
+                </div>
+            </div>
+        </details>
+
+        <section class="card card-body shadow-sm mb-4">
+            <h3 class="h5 fw-bold text-primary">Anotações da reunião</h3>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-insert-time>Inserir horário</button>
+                <label class="form-check-label">
+                    <input type="checkbox" class="form-check-input me-1" data-auto-time>
+                    Horário automático ao iniciar novo parágrafo
+                </label>
+            </div>
+            <textarea class="form-control" rows="9" data-content-field="anotacoes"
+                      placeholder="Registre os pontos discutidos durante a reunião."></textarea>
+        </section>
+
+        <div class="d-flex flex-wrap gap-2 mb-5">
+            <button class="btn btn-primary" type="submit">Salvar ata</button>
+            <a class="btn btn-outline-secondary" href="{% url 'atas' %}">Concluir</a>
+        </div>
+    </form>
+    {% if ata %}
+    <form method="post" action="{% url 'alterar_fila_ata' ata.pk %}" class="mb-5">
+        {% csrf_token %}
+        <button class="btn btn-outline-primary" type="submit">
+            {% if ata.na_fila %}Remover da fila de exportação{% else %}Adicionar à fila de exportação{% endif %}
+        </button>
+    </form>
+    {% endif %}
+</div>
+{{ conteudo_inicial|json_script:"ata-conteudo-json" }}
+{{ integrantes_ata|json_script:"ata-integrantes-json" }}
+<script src="{% static 'core/atas.js' %}" defer></script>
+{% endblock %}

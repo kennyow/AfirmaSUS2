@@ -2,12 +2,13 @@
 
 import os
 import json
+from datetime import date, time
 from django import forms
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from .models import Local, Atividade, EscalaTrabalho, UsuarioAutorizado
+from .models import AtaReuniao, Local, Atividade, EscalaTrabalho, UsuarioAutorizado
 
 
 # ==========================================
@@ -199,3 +200,188 @@ class CadastroUsuarioForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+class AtaReuniaoForm(forms.ModelForm):
+    class Meta:
+        model = AtaReuniao
+        fields = [
+            'titulo',
+            'data',
+            'horario',
+            'local',
+            'coordenador',
+            'responsavel',
+            'conteudo',
+        ]
+        widgets = {
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex.: Planejamento da campanha de vacinação',
+            }),
+            'data': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'horario': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
+            'local': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex.: UBS Centro ou Google Meet',
+            }),
+            'coordenador': forms.TextInput(attrs={'class': 'form-control'}),
+            'responsavel': forms.TextInput(attrs={'class': 'form-control'}),
+            'conteudo': forms.HiddenInput(),
+        }
+
+    def clean_conteudo(self):
+        conteudo = self.cleaned_data['conteudo']
+        if not isinstance(conteudo, dict):
+            raise ValidationError("O conteúdo da ata deve ser um objeto válido.")
+
+        participantes = conteudo.get('participantes')
+        assuntos = conteudo.get('assuntos')
+        decisoes = conteudo.get('decisoes')
+        pendencias = conteudo.get('pendencias')
+        encerramento = conteudo.get('encerramento')
+        acoes = conteudo.get('acoes')
+
+        if not isinstance(participantes, dict) or not isinstance(assuntos, dict):
+            raise ValidationError("Revise os participantes e os assuntos da ata.")
+        if not isinstance(decisoes, dict) or not isinstance(pendencias, dict):
+            raise ValidationError("Revise as decisões e as pendências da ata.")
+        if not isinstance(encerramento, dict) or not isinstance(acoes, list):
+            raise ValidationError("Revise o encerramento e as ações da ata.")
+
+        def texto(valor, campo, limite=10000):
+            if not isinstance(valor, str):
+                raise ValidationError(f"O campo {campo} deve ser texto.")
+            valor = valor.strip()
+            if len(valor) > limite:
+                raise ValidationError(f"O campo {campo} excede o limite de {limite} caracteres.")
+            return valor
+
+        def lista_textos(valor, campo, limite=100):
+            if not isinstance(valor, list) or len(valor) > limite:
+                raise ValidationError(f"A lista {campo} é inválida ou excede {limite} itens.")
+            return [texto(item, campo, 5000) for item in valor]
+
+        participantes['presentes'] = lista_textos(
+            participantes.get('presentes'), 'presentes'
+        )
+        participantes['ausentes'] = lista_textos(
+            participantes.get('ausentes'), 'ausentes'
+        )
+
+        itens_assuntos = assuntos.get('itens')
+        if not isinstance(itens_assuntos, list) or len(itens_assuntos) > 100:
+            raise ValidationError("A lista de assuntos é inválida ou excede 100 itens.")
+        assuntos['itens'] = [
+            {
+                'id': texto(item.get('id', ''), 'identificador do assunto', 64),
+                'titulo': texto(item.get('titulo', ''), 'título do assunto', 500),
+                'discussao': texto(item.get('discussao', ''), 'discussão', 10000),
+            }
+            for item in itens_assuntos
+            if isinstance(item, dict)
+        ]
+        if len(assuntos['itens']) != len(itens_assuntos):
+            raise ValidationError("Um dos assuntos enviados é inválido.")
+        assuntos['observacoes'] = texto(
+            assuntos.get('observacoes', ''), 'observações'
+        )
+
+        decisoes['itens'] = lista_textos(decisoes.get('itens'), 'decisões')
+        decisoes['justificativas'] = texto(
+            decisoes.get('justificativas', ''), 'justificativas'
+        )
+
+        pendencias['itens'] = lista_textos(pendencias.get('itens'), 'pendências')
+        pendencias['proximos_passos'] = texto(
+            pendencias.get('proximos_passos', ''), 'próximos passos'
+        )
+
+        encerramento['horario_termino'] = texto(
+            encerramento.get('horario_termino', ''), 'horário de término', 5
+        )
+        encerramento['proxima_reuniao'] = texto(
+            encerramento.get('proxima_reuniao', ''), 'data da próxima reunião', 10
+        )
+        if encerramento['horario_termino']:
+            try:
+                time.fromisoformat(encerramento['horario_termino'])
+            except ValueError as erro:
+                raise ValidationError("Informe um horário de término válido.") from erro
+        if encerramento['proxima_reuniao']:
+            try:
+                date.fromisoformat(encerramento['proxima_reuniao'])
+            except ValueError as erro:
+                raise ValidationError("Informe uma data válida para a próxima reunião.") from erro
+
+        acoes_limpas = []
+        identificadores = set()
+        for acao in acoes:
+            if not isinstance(acao, dict):
+                raise ValidationError("Uma das ações da ata é inválida.")
+            identificador = texto(acao.get('id', ''), 'identificador da ação', 64)
+            if not identificador or identificador in identificadores:
+                raise ValidationError("Os identificadores das ações devem ser únicos.")
+            identificadores.add(identificador)
+
+            status = acao.get('status', 'Pendente')
+            if status not in ('Pendente', 'Em andamento', 'Concluída'):
+                raise ValidationError("O status de uma ação é inválido.")
+
+            prazo = texto(acao.get('prazo', ''), 'prazo da ação', 10)
+            lembrete = acao.get('lembrete')
+            if not isinstance(lembrete, dict):
+                raise ValidationError("Os dados do lembrete de uma ação são inválidos.")
+            lembrete_data = texto(lembrete.get('data', ''), 'data do lembrete', 10)
+            lembrete_hora = texto(lembrete.get('hora', ''), 'hora do lembrete', 5)
+            for valor, campo, parser in (
+                (prazo, 'prazo da ação', 'date'),
+                (lembrete_data, 'data do lembrete', 'date'),
+                (lembrete_hora, 'hora do lembrete', 'time'),
+            ):
+                if valor:
+                    try:
+                        (date if parser == 'date' else time).fromisoformat(valor)
+                    except ValueError as erro:
+                        raise ValidationError(f"Informe um {campo} válido.") from erro
+
+            acoes_limpas.append({
+                'id': identificador,
+                'tarefa': texto(acao.get('tarefa', ''), 'tarefa', 5000),
+                'responsavel': texto(acao.get('responsavel', ''), 'responsável', 150),
+                'prazo': prazo,
+                'status': status,
+                'lembrete': {'data': lembrete_data, 'hora': lembrete_hora},
+            })
+        conteudo['acoes'] = acoes_limpas
+        conteudo['anotacoes'] = texto(conteudo.get('anotacoes', ''), 'anotações')
+        horario_automatico = conteudo.get('horario_automatico', True)
+        if not isinstance(horario_automatico, bool):
+            raise ValidationError("A preferência de horário automático é inválida.")
+        conteudo['horario_automatico'] = horario_automatico
+        return conteudo
+
+
+class AtaReuniaoFormExportacao(forms.Form):
+    atas = forms.MultipleChoiceField(required=True)
+    formatos = forms.MultipleChoiceField(
+        required=True,
+        choices=(('pdf', 'PDF'), ('docx', 'Word (.docx)'), ('xlsx', 'Excel (.xlsx)')),
+    )
+    modo = forms.ChoiceField(
+        required=True,
+        choices=(('separado', 'Um arquivo por ata'), ('juntos', 'Reunir atas por formato')),
+    )
+
+    def __init__(self, *args, atas, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['atas'].choices = [
+            (str(ata.pk), ata.titulo.strip() or f'Ata {ata.pk}')
+            for ata in atas
+        ]
+
+    def clean_atas(self):
+        atas = self.cleaned_data['atas']
+        if len(atas) > 100:
+            raise ValidationError("Exporte no máximo 100 atas por vez.")
+        return atas

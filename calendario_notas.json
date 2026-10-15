@@ -165,12 +165,12 @@
   },
   {
     "id": "evento-importado-calendario-017",
-    "title": "Reunião de Pauta",
+    "title": "Reunião de Pauta Urgente",
     "start": "2026-09-30",
     "end": "2026-09-30",
     "backgroundColor": "#4C2059",
     "borderColor": "#4C2059",
     "textColor": "#ffffff",
-    "description": "Convidado Lucas. "
+    "description": "Convidado Lucas. Regras para o Versus."
   }
 ]

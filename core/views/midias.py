@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from .utils import converter_link_drive
+from .utils import converter_link_drive, ordenar_atividades_timeline
 
 # Caminhos para os arquivos JSON na raiz do projeto
 FORMACOES_PATH = os.path.join(settings.BASE_DIR, 'formacoes.json')
@@ -95,7 +95,7 @@ def formacoes(request):
     return render(request, 'core/midias.html', context)
 
 def midias(request):
-    atividades = ler_json(TIMELINE_PATH)
+    atividades = ordenar_atividades_timeline(ler_json(TIMELINE_PATH))
     linha_tempo_dinamica = ler_linha_tempo_dinamica()
     return render(request, 'core/linha_tempo_midias.html', {
         'atividades_timeline': atividades,
@@ -242,7 +242,7 @@ def remover_midia(request, tipo, index):
                 salvar_json(VIDEOS_PATH, videos)
 
         elif tipo == 'timeline':
-            atividades = ler_json(TIMELINE_PATH)
+            atividades = ordenar_atividades_timeline(ler_json(TIMELINE_PATH))
             if 0 <= idx < len(atividades):
                 atividades.pop(idx)
                 salvar_json(TIMELINE_PATH, atividades)

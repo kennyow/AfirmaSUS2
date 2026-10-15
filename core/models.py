@@ -160,3 +160,36 @@ class Perfil(models.Model):
         if self.avatar:
             return self.avatar.url
         return None
+
+
+class AtaReuniao(models.Model):
+    titulo = models.CharField(max_length=200, blank=True, verbose_name="Tema da reunião")
+    data = models.DateField(verbose_name="Data da reunião")
+    horario = models.TimeField(null=True, blank=True, verbose_name="Horário")
+    local = models.CharField(max_length=200, blank=True, verbose_name="Local / Plataforma")
+    coordenador = models.CharField(max_length=150, blank=True, verbose_name="Coordenador geral")
+    responsavel = models.CharField(max_length=150, blank=True, verbose_name="Responsável pela ata")
+    conteudo = models.JSONField(default=dict, verbose_name="Conteúdo da ata")
+    na_fila = models.BooleanField(default=False, verbose_name="Na fila de exportação")
+    na_fila_em = models.DateTimeField(null=True, blank=True)
+    exportada_em = models.DateTimeField(null=True, blank=True)
+    criada_por = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='atas_criadas',
+    )
+    atualizada_por = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='atas_atualizadas',
+    )
+    criada_em = models.DateTimeField(auto_now_add=True)
+    atualizada_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-data', '-horario', '-criada_em']
+        verbose_name = "Ata de reunião"
+        verbose_name_plural = "Atas de reunião"
+
+    def __str__(self):
+        return self.titulo.strip() or "Ata sem título"

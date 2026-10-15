@@ -319,9 +319,22 @@
     "lat": -7.1349667561981,
     "lon": -34.8458099787512,
     "foto": "https://74ddb495e3f187ded630-0b4c691ea14dad11384ab079da46af4f.ssl.cf2.rackcdn.com/kennyow.api.ushahidi.io/6/a/6a064a35eb363-chatgpt_image_12_de_abr._de_2025_08_59_31.png",
-    "descricao": "Local de Reuniões onde André maltrata a gente",
+    "descricao": "Local de Reuniões.",
     "status": "Crítico",
     "cor": "pink",
     "icone": "briefcase"
+  },
+  {
+    "id": 29,
+    "nome": "Ibama",
+    "distrito": "Distrito I",
+    "categoria": "Saúde",
+    "lat": -7.135881717794323,
+    "lon": -34.85755453075123,
+    "foto": "https://lh3.googleusercontent.com/grass-cs/AABkmLdZw3ezXQxheXGSbetLo-6Ua1P9F3YIKs6XuL3Qk1Vsk3CVDD1n5JHBj3Z12HQ0iGsHjz8LAmIRJiZpDEurRgweMVrGTXsj5IDY5tNfTMU1_y85ehq_07pLDnJE5lmexw-FIsrwgw=w408-h306-k-no",
+    "descricao": "Local de Lazer",
+    "status": "Ativo",
+    "cor": "green",
+    "icone": "heart-pulse"
   }
 ]
