@@ -83,7 +83,7 @@ class LocalForm(forms.ModelForm):
             local.save()
 
             # Persistência síncrona no arquivo dados_locais.json
-            caminho_json = os.path.join(settings.BASE_DIR, 'dados_locais.json')
+            caminho_json = os.path.join(settings.DATA_DIR, 'dados_locais.json')
             try:
                 dados_existentes = []
                 if os.path.exists(caminho_json):

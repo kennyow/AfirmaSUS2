@@ -158,7 +158,7 @@ class LinhaDoTempoMidiasTests(TestCase):
         with open(self.timeline_path, 'w', encoding='utf-8') as arquivo:
             json.dump(atividades, arquivo)
         base_dir_patcher = patch.object(
-            main_views.settings, 'BASE_DIR', Path(self.temp_dir.name)
+            main_views.settings, 'DATA_DIR', Path(self.temp_dir.name)
         )
         base_dir_patcher.start()
         self.addCleanup(base_dir_patcher.stop)
@@ -232,18 +232,32 @@ class LinhaDoTempoMidiasTests(TestCase):
 
 
 class EquipeInformacoesTests(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        data_dir = Path(self.temp_dir.name)
+        (data_dir / 'integrantes.json').write_text(json.dumps([{
+            'nome': 'Integrante de teste',
+            'curso': 'Enfermagem',
+            'situacao': 'Bolsista',
+            'foto': 'https://drive.google.com/file/d/foto_teste/view',
+        }]), encoding='utf-8')
+        patcher = patch.object(main_views.settings, 'DATA_DIR', data_dir)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_pagina_exibe_integrantes_e_secao_informacoes(self):
         resposta = self.client.get(reverse('equipe_informacoes'))
 
         self.assertEqual(resposta.status_code, 200)
         self.assertContains(resposta, 'Equipe e Informações')
-        self.assertContains(resposta, 'Alex Sávio')
+        self.assertContains(resposta, 'Integrante de teste')
         self.assertContains(resposta, 'Enfermagem')
         self.assertContains(resposta, 'Bolsista')
         self.assertContains(resposta, 'Informações')
         self.assertContains(
             resposta,
-            'https://lh3.googleusercontent.com/d/11cHCxNlrG0Dbse4yOFW_ZPG9kDGYT4X9',
+            'https://lh3.googleusercontent.com/d/foto_teste',
         )
 
     def test_pagina_exibe_plataformas_com_links_e_logos(self):

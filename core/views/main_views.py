@@ -23,7 +23,7 @@ def home(request):
     url_logo_apresentacao = converter_link_drive(link_logo_apresentacao)
 
     # Carregamento da Linha do Tempo Geral (JSON TimelineJS)
-    caminho_json = os.path.join(settings.BASE_DIR, 'linhadotempodinamica.json')
+    caminho_json = os.path.join(settings.DATA_DIR, 'linhadotempodinamica.json')
     timeline_json_str = "{}"
 
     if os.path.exists(caminho_json):
@@ -46,7 +46,7 @@ def home(request):
 
     # Carregamento da Linha do Tempo de Atividades (JSON local)
     try:
-        caminho_timeline_atividades = os.path.join(settings.BASE_DIR, 'timeline.json')
+        caminho_timeline_atividades = os.path.join(settings.DATA_DIR, 'timeline.json')
         with open(caminho_timeline_atividades, "r", encoding="utf-8") as f:
             atividades_raw = json.load(f)
 
@@ -72,7 +72,7 @@ def home(request):
 
 
 def equipe_informacoes(request):
-    caminho_integrantes = os.path.join(settings.BASE_DIR, 'integrantes.json')
+    caminho_integrantes = os.path.join(settings.DATA_DIR, 'integrantes.json')
     with open(caminho_integrantes, 'r', encoding='utf-8') as arquivo:
         integrantes = json.load(arquivo)
 
@@ -280,7 +280,7 @@ def nova_aba_view(request):
 
 
 
-INDICADORES_PATH = os.path.join(settings.BASE_DIR, 'indicadores.json')
+INDICADORES_PATH = os.path.join(settings.DATA_DIR, 'indicadores.json')
 
 def levantamento_estatistico(request):
     # 1. Carrega os indicadores ajustáveis (mão/manual)
@@ -293,7 +293,7 @@ def levantamento_estatistico(request):
             pass
 
     # 2. Carrega e analisa dinamicamente o arquivo 'linhadotempodinamica.json'
-    caminho_json = os.path.join(settings.BASE_DIR, 'linhadotempodinamica.json')
+    caminho_json = os.path.join(settings.DATA_DIR, 'linhadotempodinamica.json')
     events = []
     
     if os.path.exists(caminho_json):

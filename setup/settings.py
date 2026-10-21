@@ -10,22 +10,57 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Sem configuração, preserva os caminhos locais já existentes.
+data_directory = os.environ.get('DJANGO_DATA_DIR', '').strip()
+DATA_DIR = Path(data_directory) if data_directory else BASE_DIR
+if not DATA_DIR.is_absolute() or not DATA_DIR.is_dir():
+    raise ImproperlyConfigured('DJANGO_DATA_DIR deve apontar para uma pasta absoluta existente.')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-d^9!lvabcza^s(fejv_4=bq9j8wb$ave$c)a(0#n2e=-g97^s2'
+# O padrão mantém o desenvolvimento local; na hospedagem, use DJANGO_DEBUG=false.
+debug_value = os.environ.get('DJANGO_DEBUG', 'true').strip().lower()
+if debug_value not in {'true', 'false', '1', '0'}:
+    raise ImproperlyConfigured('DJANGO_DEBUG deve ser true, false, 1 ou 0.')
+DEBUG = debug_value in {'true', '1'}
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', '').strip()
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            'Defina DJANGO_SECRET_KEY no ambiente antes de iniciar em produção.'
+        )
+    SECRET_KEY = 'django-insecure-local-development-only-afirmasus2'
+if not DEBUG and (len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-')):
+    raise ImproperlyConfigured(
+        'DJANGO_SECRET_KEY de produção deve ter pelo menos 50 caracteres '
+        'e não pode usar o prefixo django-insecure-.'
+    )
 
-ALLOWED_HOSTS = []
+def environment_list(name, default=''):
+    return [value.strip() for value in os.environ.get(name, default).split(',') if value.strip()]
+
+
+ALLOWED_HOSTS = environment_list(
+    'DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,[::1]' if DEBUG else ''
+)
+if not DEBUG and not ALLOWED_HOSTS:
+    raise ImproperlyConfigured('Defina DJANGO_ALLOWED_HOSTS antes de iniciar em produção.')
+if '*' in ALLOWED_HOSTS:
+    raise ImproperlyConfigured('DJANGO_ALLOWED_HOSTS deve listar os hosts explicitamente, sem *.')
+
+# Origens extras são opcionais: formulários na mesma origem já são aceitos pelo Django.
+CSRF_TRUSTED_ORIGINS = environment_list('DJANGO_CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition
@@ -43,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -81,7 +117,7 @@ WSGI_APPLICATION = 'setup.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DATA_DIR / 'db.sqlite3',
     }
 }
 
@@ -120,7 +156,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage' if DEBUG
+        else 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 
 # Email
@@ -136,7 +180,6 @@ MAILERS = {
 import os
 
 # Configuração de Arquivos Estáticos (CSS, JS, Imagens do Sistema)
-STATIC_URL = 'static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -145,4 +188,4 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 
 # Caminho absoluto da pasta no computador/servidor
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = DATA_DIR / 'media'

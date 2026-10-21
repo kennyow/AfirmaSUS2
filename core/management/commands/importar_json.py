@@ -1,6 +1,7 @@
 import json
 import os
 from django.core.management.base import BaseCommand
+from django.conf import settings
 from core.models import Local, Integrante, Atividade
 
 class Command(BaseCommand):
@@ -10,7 +11,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------
         # 1. IMPORTAÇÃO DOS LOCAIS (dados_locais.json)
         # ---------------------------------------------------------
-        caminho_locais = 'dados_locais.json'
+        caminho_locais = settings.DATA_DIR / 'dados_locais.json'
         if os.path.exists(caminho_locais):
             with open(caminho_locais, 'r', encoding='utf-8') as f:
                 dados_locais = json.load(f)
@@ -41,7 +42,7 @@ class Command(BaseCommand):
         # ---------------------------------------------------------
         # 2. IMPORTAÇÃO DOS INTEGRANTES (integrantes.json)
         # ---------------------------------------------------------
-        caminho_integrantes = 'integrantes.json'
+        caminho_integrantes = settings.DATA_DIR / 'integrantes.json'
         if os.path.exists(caminho_integrantes):
             with open(caminho_integrantes, 'r', encoding='utf-8') as f:
                 dados_integrantes = json.load(f)

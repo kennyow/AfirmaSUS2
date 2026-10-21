@@ -15,7 +15,7 @@ from ..models import Local, Atividade, EscalaTrabalho
 from ..forms import LocalForm, AtividadeForm, EscalaForm
 
 logger = logging.getLogger(__name__)
-CALENDARIO_NOTAS_PATH = settings.BASE_DIR / 'calendario_notas.json'
+CALENDARIO_NOTAS_PATH = settings.DATA_DIR / 'calendario_notas.json'
 
 
 def _carregar_notas_calendario():
@@ -95,6 +95,7 @@ def pagina_escala(request):
     try:
         for evento in _carregar_notas_calendario():
             evento_formatado = evento.copy()
+            evento_formatado.setdefault('backgroundColor', '#381246')
             evento_formatado['extendedProps'] = {
                 'description': evento.get('description', ''),
                 'isNote': True,

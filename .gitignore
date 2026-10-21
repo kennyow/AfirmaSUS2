@@ -2,3 +2,12 @@ dados_afirmasus.xlsx
 empacotamento.py
 __pycache__/
 *.pyc
+venv/
+.venv/
+staticfiles/
+media/
+.env
+.env.*
+!.env.example
+.afirmasus-config.json
+*.zip

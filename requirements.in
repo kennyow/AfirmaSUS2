@@ -1,0 +1,8 @@
+Django>=5.2.8,<5.3
+pandas
+folium
+plotly
+openpyxl
+Pillow
+whitenoise>=6.12,<7
+waitress>=3.0.2,<4
