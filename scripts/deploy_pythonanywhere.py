@@ -1,10 +1,13 @@
-"""Upload code/static files through the API, preserving all application data."""
+"""Publish GitHub code, static assets and JSON; preserve SQLite and uploads."""
 import ast
+from datetime import datetime, timezone
+import json
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
 import sys
 import time
+from uuid import uuid4
 
 import requests
 
@@ -13,6 +16,42 @@ ROOT = Path(__file__).resolve().parent.parent
 REMOTE = '/home/kennyow/AfirmaSUS2/afirmasus_django'
 API = 'https://www.pythonanywhere.com/api/v0/user/kennyow'
 DOMAIN = 'kennyow.pythonanywhere.com'
+DATA_REMOTE = '/home/kennyow/afirmasus-dados'
+
+
+def data_file(name):
+    path = PurePosixPath(name)
+    return (len(path.parts) == 1 and not name.startswith('.')
+            and path.suffix.lower() == '.json' and path.name == name)
+
+
+def destination(name):
+    return (DATA_REMOTE if data_file(name) else REMOTE) + '/' + name
+
+
+def validate_json(name, content):
+    try:
+        json.loads(content.decode('utf-8-sig'),
+                   parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+    except (ValueError, UnicodeError) as error:
+        raise RuntimeError(f'JSON inválido: {name}. Nenhum arquivo foi publicado.') from error
+
+
+def publish_data(client, name, content, original, backup_directory, before_write=lambda: None):
+    path = destination(name)
+    if client.read(path) != original:
+        raise RuntimeError(f'O site alterou {name} durante a publicação; tente novamente.')
+    if original is not None:
+        backup_path = backup_directory + '/' + name
+        client.write(backup_path, original)
+        if client.read(backup_path) != original:
+            raise RuntimeError(f'Não foi possível verificar o backup de {name}.')
+    if client.read(path) != original:
+        raise RuntimeError(f'O site alterou {name} durante o backup; tente novamente.')
+    before_write()
+    client.write(path, content)
+    if client.read(path) != content:
+        raise RuntimeError(f'Não foi possível verificar o JSON publicado: {name}.')
 
 
 def same_migration(local, remote):
@@ -111,6 +150,10 @@ def main():
 
     tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0')
     names = [name for name in tracked if name and code_file(name)]
+    data_names = [name for name in tracked if name and data_file(name)]
+    for name in data_names:
+        validate_json(name, (ROOT / name).read_bytes())
+    names += data_names
     names += ['manage.py', 'serve.py']
     static_root = ROOT / 'staticfiles'
     if not (static_root / 'staticfiles.json').is_file():
@@ -131,7 +174,7 @@ def main():
     changes = []
     for name in names:
         content = (ROOT / name).read_bytes()
-        original = client.read(REMOTE + '/' + name)
+        original = client.read(destination(name))
         if original != content:
             if '/migrations/' in name and not name.endswith('/__init__.py'):
                 if same_migration(content, original):
@@ -144,10 +187,17 @@ def main():
                 )
             changes.append((name, content, original))
     applied = []
+    backup_directory = ('/home/kennyow/afirmasus-deploy-backups/'
+                        + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+                        + '-' + uuid4().hex[:12])
     try:
         for name, content, original in changes:
-            applied.append((name, original))
-            client.write(REMOTE + '/' + name, content)
+            if data_file(name):
+                publish_data(client, name, content, original, backup_directory,
+                             before_write=lambda: applied.append((name, original)))
+            else:
+                applied.append((name, original))
+                client.write(destination(name), content)
             print('Atualizado:', name, flush=True)
         client.write(manifest_path, ('\n'.join(names) + '\n').encode())
         response = client.call('POST', f'/webapps/{DOMAIN}/reload/')
@@ -156,9 +206,9 @@ def main():
         print('Falha na publicação; restaurando arquivos anteriores.', flush=True)
         for name, original in reversed(applied):
             if original is not None:
-                client.write(REMOTE + '/' + name, original)
+                client.write(destination(name), original)
             else:
-                result = client.call('DELETE', '/files/path' + REMOTE + '/' + name)
+                result = client.call('DELETE', '/files/path' + destination(name))
                 if result.status_code != 404:
                     result.raise_for_status()
         if previous_manifest is not None:
@@ -169,6 +219,8 @@ def main():
                 result.raise_for_status()
         raise
     print(f'Publicação enviada e reload aceito: {len(changes)} arquivos atualizados.')
+    if any(data_file(name) and original is not None for name, _, original in changes):
+        print('Cópias anteriores dos JSON:', backup_directory)
 
 
 if __name__ == '__main__':

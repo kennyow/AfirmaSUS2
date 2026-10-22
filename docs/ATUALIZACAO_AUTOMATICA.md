@@ -60,10 +60,25 @@ Código Python de `core` e `setup`, templates, estáticos originais, `manage.py`
 pelo Git são consideradas. A coleta ocorre no runner, com uma chave temporária
 de build que não é enviada como configuração ao servidor.
 
-SQLite, JSON de dados, uploads, ambientes virtuais e configuração privada não
-são enviados. Alterar `linhadotempodinamica.json` localmente, por exemplo,
-não altera o conteúdo do site. Dados do site devem ser editados pela aplicação
-ou transferidos separadamente, com backup e escolha explícita da fonte correta.
+Os JSON rastreados pelo Git na raiz do repositório são publicados em
+`/home/kennyow/afirmasus-dados`, incluindo `linhadotempodinamica.json`,
+`timeline.json` e os demais arquivos de conteúdo. O GitHub é a fonte desses dados:
+em cada publicação seus arquivos substituem as versões do site. Alterações feitas
+pelo site não voltam automaticamente ao GitHub e podem ser substituídas no próximo push.
+
+Edite os arquivos em `AfirmaSUS2/afirmasus_django`, faça commit e push para main.
+A pasta vizinha `AfirmaSUS` não pertence a este repositório e não é publicada.
+Salvar no VS Code sem commit/push também não publica.
+
+Antes do envio, todos os JSON são validados. Cada JSON substituído ganha uma cópia
+verificada em `/home/kennyow/afirmasus-deploy-backups/<execução>/<arquivo>.json`.
+O caminho aparece no log; os backups não ficam em pasta pública. O conteúdo
+publicado também é relido para confirmar o envio. Os backups ocupam espaço e
+devem ser arquivados/removidos periodicamente após conferir o site.
+
+SQLite, uploads, ambientes virtuais e configuração privada não são enviados.
+Dados armazenados no SQLite e mudanças de esquema precisam de procedimentos
+próprios; o deploy não substitui banco nem executa migrações automaticamente.
 
 ## Limites e recuperação
 
@@ -78,6 +93,9 @@ ou transferidos separadamente, com backup e escolha explícita da fonte correta.
   menor uso. Em falha tratada, o script tenta restaurar os arquivos anteriores;
   interrupção forçada do runner ou indisponibilidade da API pode exigir restauração
   manual. Mantenha backup do código e dos dados antes da primeira execução.
+- Evite edições pelo site durante a publicação dos JSON. O script detecta mudanças
+  entre a leitura inicial e o backup, mas a API não oferece trava de gravação;
+  uma edição simultânea ao envio ainda pode ser substituída.
 - Reload aceito pela API não comprova que a aplicação iniciou corretamente.
   Confira o site e os logs da aba Web após a publicação.
 - Para desativar, remova `PA_DEPLOY_ENABLED` ou mude seu valor para `false`.

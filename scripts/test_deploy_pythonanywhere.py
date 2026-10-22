@@ -3,10 +3,45 @@ from unittest.mock import Mock, patch
 
 from scripts.deploy_pythonanywhere import (
     Client, code_file, validate_requirements, same_migration, error_annotation,
+    data_file, destination, validate_json, publish_data,
 )
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_json_routes_to_live_data_directory(self):
+        self.assertTrue(data_file('linhadotempodinamica.json'))
+        self.assertEqual(destination('timeline.json'), '/home/kennyow/afirmasus-dados/timeline.json')
+        for name in ['../timeline.json', '/timeline.json', '.secret.json', 'media/a.json', 'db.sqlite3']:
+            self.assertFalse(data_file(name))
+
+    def test_invalid_json_blocks_publication(self):
+        validate_json('timeline.json', b'{"events": []}')
+        for content in [b'{', b'{"value": NaN}', b'\xff']:
+            with self.assertRaisesRegex(RuntimeError, 'JSON inválido'):
+                validate_json('timeline.json', content)
+
+    def test_data_backup_is_verified_before_overwrite(self):
+        client = Mock()
+        client.read.side_effect = [b'old', b'old', b'old', b'new']
+        publish_data(client, 'timeline.json', b'new', b'old', '/backup')
+        self.assertEqual(client.write.call_args_list[0].args, ('/backup/timeline.json', b'old'))
+        self.assertEqual(client.write.call_args_list[1].args,
+                         ('/home/kennyow/afirmasus-dados/timeline.json', b'new'))
+
+    def test_backup_failure_prevents_data_overwrite(self):
+        client = Mock()
+        client.read.side_effect = [b'old', b'bad backup']
+        with self.assertRaises(RuntimeError):
+            publish_data(client, 'timeline.json', b'new', b'old', '/backup')
+        self.assertEqual(client.write.call_count, 1)
+
+    def test_concurrent_site_edit_prevents_data_overwrite(self):
+        client = Mock()
+        client.read.return_value = b'changed by site'
+        with self.assertRaises(RuntimeError):
+            publish_data(client, 'timeline.json', b'new', b'old', '/backup')
+        client.write.assert_not_called()
+
     def test_migration_comments_bom_and_line_endings_do_not_block(self):
         self.assertTrue(same_migration(
             b'# Generated yesterday\noperations = [CreateModel(name="Example")]\n',
