@@ -13,6 +13,28 @@ API = 'https://www.pythonanywhere.com/api/v0/user/kennyow'
 DOMAIN = 'kennyow.pythonanywhere.com'
 
 
+def requirement_lines(content):
+    """Ignore file formatting, preserving dependency specifications exactly."""
+    return sorted(line.strip() for line in content.decode('utf-8-sig').splitlines()
+                  if line.strip() and not line.lstrip().startswith('#'))
+
+
+def validate_requirements(local, remote):
+    path = REMOTE + '/requirements.txt'
+    if remote is None:
+        raise RuntimeError(
+            f'Arquivo ausente no servidor: {path}. '
+            'Siga docs/ATUALIZACAO_AUTOMATICA.md, seção Sincronização inicial. '
+            'Nenhum arquivo foi publicado.'
+        )
+    if requirement_lines(local) != requirement_lines(remote):
+        raise RuntimeError(
+            f'O arquivo {path} difere do GitHub. '
+            'Siga docs/ATUALIZACAO_AUTOMATICA.md, seção Sincronização inicial, '
+            'para instalar e sincronizar as dependências. Nenhum arquivo foi publicado.'
+        )
+
+
 def code_file(name):
     path = PurePosixPath(name)
     return (
@@ -68,9 +90,7 @@ def main():
     # Dependency changes need installation on the server before code is published.
     requirements = (ROOT / 'requirements.txt').read_bytes()
     remote_requirements = client.read(REMOTE + '/requirements.txt')
-    normalize = lambda value: value.replace(b'\r\n', b'\n').strip()
-    if remote_requirements is None or normalize(remote_requirements) != normalize(requirements):
-        raise RuntimeError('Instale e sincronize requirements.txt no servidor antes de publicar.')
+    validate_requirements(requirements, remote_requirements)
 
     tracked = subprocess.check_output(['git', 'ls-files', '-z'], cwd=ROOT).decode().split('\0')
     names = [name for name in tracked if name and code_file(name)]

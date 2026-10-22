@@ -1,10 +1,22 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from scripts.deploy_pythonanywhere import Client, code_file
+from scripts.deploy_pythonanywhere import Client, code_file, validate_requirements
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_requirements_formatting_does_not_block_deployment(self):
+        validate_requirements(b'Django==5.2.18\nrequests==2.34.2\n',
+                              b'\xef\xbb\xbf# dependencies\r\nrequests==2.34.2\r\n Django==5.2.18 \r\n')
+
+    def test_dependency_changes_still_block_deployment(self):
+        with self.assertRaisesRegex(RuntimeError, 'difere do GitHub'):
+            validate_requirements(b'Django==5.2.18', b'Django==5.2.17')
+
+    def test_missing_requirements_has_specific_diagnostic(self):
+        with self.assertRaisesRegex(RuntimeError, 'Arquivo ausente'):
+            validate_requirements(b'Django==5.2.18', None)
+
     def test_data_and_credentials_are_excluded(self):
         for name in ['db.sqlite3', 'timeline.json', 'linhadotempodinamica.json',
                      'media/upload.png', '.env', 'setup/.secret.py',

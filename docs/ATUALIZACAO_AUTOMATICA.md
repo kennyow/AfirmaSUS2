@@ -28,6 +28,31 @@ Depois disso, cada push para `main` inicia a publicação. A primeira execução
 pode demorar vários minutos: a API limita chamadas e o script respeita esse limite.
 O workflow não depende de SSH nem de uma console permanentemente aberta.
 
+## Sincronização inicial
+
+Se o log indicar que requirements.txt está ausente ou diferente, isso não
+comprova que os pacotes estão faltando: a checagem compara a lista de requisitos,
+não consegue consultar os pacotes instalados pela API de arquivos.
+Diferenças de ordem, comentários, linhas vazias, BOM e CRLF são ignoradas.
+
+1. Baixe o requirements.txt atual do repositório no GitHub (ou use o arquivo local
+   deste repositório) e envie pela aba Files para `/home/kennyow/requirements-github.txt`.
+   Use esse nome temporário para só atualizar a lista oficial após instalar com sucesso.
+2. Abra Consoles → Bash no PythonAnywhere e execute:
+
+```bash
+/home/kennyow/.virtualenvs/afirmasus/bin/python -m pip install -r /home/kennyow/requirements-github.txt && /home/kennyow/.virtualenvs/afirmasus/bin/python -m pip check && cp /home/kennyow/requirements-github.txt /home/kennyow/AfirmaSUS2/afirmasus_django/requirements.txt
+```
+
+3. Só prossiga se terminar sem erros. No GitHub, execute **Run workflow** em
+   **Publicar no PythonAnywhere** na branch main para usar o workflow corrigido.
+   Reexecutar uma execução antiga usa o código antigo.
+
+Essa etapa não altera banco, JSON, uploads nem executa migrações. Uma falha no pip
+pode deixar uma atualização parcial dos pacotes; copie o erro antes de continuar.
+Após instalar, a publicação automática fará o Reload. A API de arquivos não
+permite executar pip no servidor; por isso esta etapa exige a console do usuário.
+
 ## O que é publicado
 
 Código Python de `core` e `setup`, templates, estáticos originais, `manage.py`,
