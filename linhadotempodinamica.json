@@ -537,11 +537,28 @@
       "start_date": {
         "year": "2026",
         "month": "10",
-        "day": "20"
+        "day": "21"
       },
       "text": {
         "headline": "2 Encontro Comunitário de Saúde",
         "text": "2 Encontro Comunitário de Saúde, com foco em saúde mental, práticas integrativas e complementares em saúde, e promoção do cuidado centrado na pessoa."
+      },
+      "group": "Eventos"
+    },
+
+    {
+      "media": {
+      "url": "https://drive.google.com/file/d/1-0XmsExbqbGoXinJ9dJHZWXlFl7cJW2Z/view?usp=drive_link",
+      "caption": "Sala de Espera"
+        },
+      "start_date": {
+        "year": "2026",
+        "month": "10",
+        "day": "21"
+      },
+      "text": {
+        "headline": "Sala de Espera",
+        "text": "Sala de Espera da USF São Rafael, com foco em saúde mental, práticas integrativas e complementares em saúde, e promoção do cuidado centrado na pessoa."
       },
       "group": "Eventos"
     }
