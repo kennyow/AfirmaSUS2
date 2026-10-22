@@ -1,10 +1,28 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from scripts.deploy_pythonanywhere import Client, code_file, validate_requirements
+from scripts.deploy_pythonanywhere import (
+    Client, code_file, validate_requirements, same_migration, error_annotation,
+)
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_migration_comments_bom_and_line_endings_do_not_block(self):
+        self.assertTrue(same_migration(
+            b'# Generated yesterday\noperations = [CreateModel(name="Example")]\n',
+            b'\xef\xbb\xbf# Generated today\r\noperations=[CreateModel(name=\'Example\')]\r\n',
+        ))
+
+    def test_actual_migration_changes_remain_blocked(self):
+        self.assertFalse(same_migration(b'operations = [CreateModel(name="A")]',
+                                        b'operations = [CreateModel(name="B")]'))
+        self.assertFalse(same_migration(b'operations = []', None))
+        self.assertFalse(same_migration(b'operations = []', b'invalid syntax !'))
+
+    def test_annotation_escapes_special_characters(self):
+        self.assertEqual(error_annotation('erro%\nsegunda linha\rfim'),
+                         '::error::erro%25%0Asegunda linha%0Dfim')
+
     def test_requirements_formatting_does_not_block_deployment(self):
         validate_requirements(b'Django==5.2.18\nrequests==2.34.2\n',
                               b'\xef\xbb\xbf# dependencies\r\nrequests==2.34.2\r\n Django==5.2.18 \r\n')

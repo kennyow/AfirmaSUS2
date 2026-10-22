@@ -1,7 +1,9 @@
 """Upload code/static files through the API, preserving all application data."""
+import ast
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
+import sys
 import time
 
 import requests
@@ -11,6 +13,21 @@ ROOT = Path(__file__).resolve().parent.parent
 REMOTE = '/home/kennyow/AfirmaSUS2/afirmasus_django'
 API = 'https://www.pythonanywhere.com/api/v0/user/kennyow'
 DOMAIN = 'kennyow.pythonanywhere.com'
+
+
+def same_migration(local, remote):
+    """Compare Python syntax without executing code or ignoring operations."""
+    if remote is None:
+        return False
+    try:
+        return ast.dump(ast.parse(local), include_attributes=False) == ast.dump(
+            ast.parse(remote), include_attributes=False)
+    except (SyntaxError, ValueError):
+        return False
+
+
+def error_annotation(message):
+    return '::error::' + message.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
 
 
 def requirement_lines(content):
@@ -117,7 +134,14 @@ def main():
         original = client.read(REMOTE + '/' + name)
         if original != content:
             if '/migrations/' in name and not name.endswith('/__init__.py'):
-                raise RuntimeError('Migração alterada exige backup e aplicação manual: ' + name)
+                if same_migration(content, original):
+                    continue
+                reason = 'ausente no servidor' if original is None else 'com código diferente no servidor'
+                raise RuntimeError(
+                    f'Migração {reason}: {name}. Nenhum arquivo foi publicado. '
+                    'Compare os arquivos antes de alterar a migração inicial; '
+                    'não execute migrate nem substitua o arquivo sem conferir o banco.'
+                )
             changes.append((name, content, original))
     applied = []
     try:
@@ -148,4 +172,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as error:
+        print(error_annotation(str(error)), flush=True)
+        sys.exit(1)
