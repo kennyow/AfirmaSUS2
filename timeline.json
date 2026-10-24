@@ -1,6 +1,23 @@
 [
   {
     "data": "Outubro / 2026",
+    "titulo": "2º Encontro Comunitário de Saúde",
+    "categoria": "Saúde",
+    "cor_borda": "#17A2B8",
+    "descricao": "2º Encontro Comunitário de Saúde, com foco em saúde mental, práticas integrativas e complementares em saúde, e promoção do cuidado centrado na pessoa.",
+    "fotos": [
+      "https://drive.google.com/file/d/141fbsEiMizQ2kn7JAcnoh99_UITWusgp/view?usp=drive_link",
+      "https://drive.google.com/file/d/1Td1yBRaBoceDiUNRdkqilzlektsJnhDM/view?usp=drive_link",
+      "https://drive.google.com/file/d/1f2x5o5LkqZK89uAMARsDIEeMXi76UTuy/view?usp=drive_link",
+      "https://drive.google.com/file/d/1Ad7xv4Sy8MpuB6R1-pdRSHJ9LKLfuOdn/view?usp=drive_link",
+      "https://drive.google.com/file/d/1e6Zc0rCDj3cqFV8SVUgJudZc0jEme_Aq/view?usp=drive_link",
+      "https://drive.google.com/file/d/1MSklnCJOArzoXJmHzVb5HK_Opl0ps8tu/view?usp=drive_link",
+      "https://drive.google.com/file/d/1Karv-MxshE80ciEc5uaaXsG6iSn47fKR/view?usp=drive_link"
+    ]
+  }, 
+  
+  {
+    "data": "Outubro / 2026",
     "titulo": "Sala de Espera",
     "categoria": "Saúde",
     "cor_borda": "#17A2B8",
