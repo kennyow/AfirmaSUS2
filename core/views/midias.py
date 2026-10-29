@@ -47,8 +47,6 @@ def extrair_youtube_id(url):
 
 def formacoes(request):
     formacoes_raw = ler_json(FORMACOES_PATH)
-    apresentacoes_raw = ler_json(APRESENTACOES_PATH)
-    videos_raw = ler_json(VIDEOS_PATH)
 
     # 1. Formações
     formacoes = []
@@ -58,6 +56,12 @@ def formacoes(request):
         item_copy['foto_url'] = converter_link_drive(raw_foto)
         formacoes.append(item_copy)
 
+    return render(request, 'core/midias.html', {'formacoes': formacoes})
+
+
+def midias(request):
+    apresentacoes_raw = ler_json(APRESENTACOES_PATH)
+    videos_raw = ler_json(VIDEOS_PATH)
     # 2. Slides / Apresentações
     apresentacoes = []
     for item in apresentacoes_raw:
@@ -87,17 +91,11 @@ def formacoes(request):
         item_copy['embed_url'] = f"https://www.youtube-nocookie.com/embed/{y_id}" if y_id else raw_url
         videos.append(item_copy)
 
-    context = {
-        'formacoes': formacoes,
-        'apresentacoes': apresentacoes,
-        'videos': videos,
-    }
-    return render(request, 'core/midias.html', context)
-
-def midias(request):
     atividades = ordenar_atividades_timeline(ler_json(TIMELINE_PATH))
     linha_tempo_dinamica = ler_linha_tempo_dinamica()
     return render(request, 'core/linha_tempo_midias.html', {
+        'apresentacoes': apresentacoes,
+        'videos': videos,
         'atividades_timeline': atividades,
         'eventos_timeline_dinamica': linha_tempo_dinamica['events'],
     })
@@ -210,7 +208,7 @@ def adicionar_midia(request, tipo):
             messages.success(request, 'Evento adicionado à Linha do Tempo Dinâmica.')
 
     return redirect(
-        'midias' if tipo in ['timeline', 'timeline_dinamica'] else 'formacoes'
+        'midias' if tipo in ['timeline', 'timeline_dinamica', 'slide', 'apresentacao', 'video'] else 'formacoes'
     )
 
 @login_required
@@ -220,7 +218,7 @@ def remover_midia(request, tipo, index):
             idx = int(index)
         except ValueError:
             return redirect(
-                'midias' if tipo in ['timeline', 'timeline_dinamica'] else 'formacoes'
+                'midias' if tipo in ['timeline', 'timeline_dinamica', 'slide', 'apresentacao', 'video'] else 'formacoes'
             )
 
         if tipo == 'formacao':
@@ -255,5 +253,5 @@ def remover_midia(request, tipo, index):
                 salvar_json(DYNAMIC_TIMELINE_PATH, linha_tempo)
 
     return redirect(
-        'midias' if tipo in ['timeline', 'timeline_dinamica'] else 'formacoes'
+        'midias' if tipo in ['timeline', 'timeline_dinamica', 'slide', 'apresentacao', 'video'] else 'formacoes'
     )
