@@ -3,11 +3,17 @@ from unittest.mock import Mock, patch
 
 from scripts.deploy_pythonanywhere import (
     Client, code_file, validate_requirements, same_migration, error_annotation,
-    data_file, destination, validate_json, publish_data,
+    data_file, destination, validate_json, publish_data, blocking_removals,
 )
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_json_renames_and_removals_do_not_block_deployment(self):
+        previous = ['apresentacoes.json', 'dados_locais.json', 'atividades.json',
+                    'staticfiles/old.css', 'core/views/old.py']
+        current = ['slides_apresentacoes.json', 'territorio_dados.json']
+        self.assertEqual(blocking_removals(previous, current), {'core/views/old.py'})
+
     def test_json_routes_to_live_data_directory(self):
         self.assertTrue(data_file('linhadotempodinamica.json'))
         self.assertEqual(destination('timeline.json'), '/home/kennyow/afirmasus-dados/timeline.json')

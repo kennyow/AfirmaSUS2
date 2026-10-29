@@ -104,6 +104,13 @@ def code_file(name):
     )
 
 
+def blocking_removals(previous_names, current_names):
+    # Retired JSON files can remain on the server: current code no longer reads
+    # them. Preserve these files rather than deleting live data during deploy.
+    return {name for name in set(previous_names) - set(current_names)
+            if not name.startswith('staticfiles/') and not data_file(name)}
+
+
 class Client:
     def __init__(self, token):
         self.session = requests.Session()
@@ -164,9 +171,7 @@ def main():
     manifest_path = REMOTE + '/.github-deploy-manifest.txt'
     previous_manifest = client.read(manifest_path)
     if previous_manifest:
-        removed = set(previous_manifest.decode().splitlines()) - set(names)
-        # Hashed static files from prior releases may remain for cached pages.
-        removed = {name for name in removed if not name.startswith('staticfiles/')}
+        removed = blocking_removals(previous_manifest.decode().splitlines(), names)
         if removed:
             raise RuntimeError('Arquivos removidos exigem atualização manual: ' + ', '.join(sorted(removed)))
 

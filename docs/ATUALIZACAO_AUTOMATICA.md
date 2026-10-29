@@ -86,6 +86,9 @@ próprios; o deploy não substitui banco nem executa migrações automaticamente
   `requirements.txt` manualmente no servidor.
 - Migrações novas/alteradas interrompem a publicação antes do primeiro upload.
   Faça backup e aplique a atualização do banco em uma manutenção planejada.
+- Remoção/renomeação de JSON não bloqueia a publicação: os arquivos antigos ficam
+  preservados no servidor e deixam de integrar o manifesto; o código usa os nomes
+  atuais. O deploy não exclui esses dados antigos automaticamente.
 - Remoção/renomeação de fontes após a primeira publicação também exige manutenção
   manual para evitar módulos antigos. O manifesto remoto é
   `.github-deploy-manifest.txt`; só o ajuste após limpar os arquivos correspondentes.
