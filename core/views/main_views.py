@@ -1,5 +1,7 @@
 import os
 import json
+import logging
+from datetime import date
 import folium
 import pandas as pd
 import plotly.express as px
@@ -7,6 +9,7 @@ from django.shortcuts import render, redirect
 from django.conf import settings
 from ..models import Local, Atividade, Integrante, EscalaTrabalho
 from .utils import converter_link_drive, ordenar_atividades_timeline
+from .management_views import _carregar_notas_calendario
 
 
 from django.conf import settings
@@ -62,7 +65,21 @@ def home(request):
     except Exception:
         atividades_timeline = []
 
+    atividades_calendario = []
+    calendario_erro = False
+    try:
+        notas = sorted(_carregar_notas_calendario(), key=lambda nota: date.fromisoformat(nota['start']), reverse=True)
+        atividades_calendario = [
+            {**nota, 'data': date.fromisoformat(nota['start'])}
+            for nota in notas[:6]
+        ]
+    except (OSError, ValueError):
+        logging.getLogger(__name__).exception('Não foi possível carregar o resumo do calendário.')
+        calendario_erro = True
+
     contexto = {
+        'atividades_calendario': atividades_calendario,
+        'calendario_erro': calendario_erro,
         'atividades_timeline': atividades_timeline,
         'url_foto_apresentacao': url_foto_apresentacao,
         'url_logo_apresentacao': url_logo_apresentacao,

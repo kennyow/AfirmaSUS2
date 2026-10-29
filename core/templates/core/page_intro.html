@@ -1,0 +1,12 @@
+{% with page=request.resolver_match.url_name %}
+{% if page != 'home' %}
+<section class="page-intro" aria-labelledby="page-heading">
+    {% include 'core/intro_art.html' %}
+    <div class="intro-copy">
+        <a class="eyebrow intro-breadcrumb" href="{% url 'home' %}">AfirmaSUS–JP <span aria-hidden="true">/</span> {% if page == 'pagina_mapa' %}Território{% elif page == 'pagina_escala' %}Organização{% elif page == 'formacoes' %}Conhecimento{% elif page == 'midias' %}Memória coletiva{% elif page == 'levantamento_estatistico' %}Impacto{% else %}Área de gestão{% endif %}</a>
+        <h1 id="page-heading">{% if page == 'pagina_mapa' %}Explore <span>o mapa.</span>{% elif page == 'pagina_escala' %}Escalas <span>&amp; calendário.</span>{% elif page == 'formacoes' %}Explore <span>nosso acervo.</span>{% elif page == 'midias' %}Memórias <span>do território.</span>{% elif page == 'levantamento_estatistico' %}Indicadores de trabalho <span>&amp; formação.</span>{% elif page == 'login' %}Acesso <span>da equipe.</span>{% elif page == 'cadastrar_usuario' %}Faça parte <span>do projeto.</span>{% elif page == 'editar_local' %}Editar <span>local.</span>{% elif page == 'cadastrar_local' %}Um novo <span>local.</span>{% elif page == 'cadastrar_escala' %}Uma nova <span>escala.</span>{% elif page == 'cadastrar_atividade' %}Uma nova <span>atividade.</span>{% elif page == 'deletar_local' %}Confirmar <span>exclusão.</span>{% else %}Área de gestão{% endif %}</h1>
+        <p>{% if page == 'pagina_mapa' %}Explore os espaços, serviços e iniciativas que fazem parte da nossa rede de cuidado.{% elif page == 'pagina_escala' %}Pessoas, encontros e ações conectados ao cotidiano da comunidade.{% elif page == 'formacoes' %}Explore formações, apresentações e vídeos. Saberes que circulam e fortalecem o SUS.{% elif page == 'midias' %}Encontros, vivências e registros de uma trajetória construída em comunidade.{% elif page == 'levantamento_estatistico' %}Acompanhe as ações e descubra o alcance do trabalho no território.{% else %}Um espaço de colaboração para fortalecer a saúde e a diversidade no território.{% endif %}</p>
+    </div>
+</section>
+{% endif %}
+{% endwith %}

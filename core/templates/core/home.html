@@ -143,6 +143,31 @@
         margin-bottom: 3.5rem;
     }
 
+    .atividades-columns {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+        gap: 2rem;
+    }
+    .atividades-timeline { min-width: 0; }
+    .atividades-timeline h2 { font-size: clamp(1.5rem, 2.4vw, 2.2rem) !important; }
+    .calendario-resumo {
+        min-width: 0;
+        padding-left: 2rem;
+        border-left: 1px solid rgba(255,255,255,.18);
+    }
+    .calendario-resumo h2 { font-size: 1.5rem; margin: .5rem 0; }
+    .calendario-resumo-lista { list-style: none; padding: 0; margin: 1.5rem 0; max-height: 480px; overflow-y: auto; }
+    .calendario-resumo-item { padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,.15); overflow-wrap: anywhere; }
+    .calendario-resumo-item:first-child { padding-top: 0; }
+    .calendario-resumo-item time { color: #ffd09a; font-size: .85rem; }
+    .calendario-resumo-item h3 { font-size: 1rem; line-height: 1.4; margin: .4rem 0; color: #fff; }
+    .calendario-resumo-item p { font-size: .9rem; line-height: 1.5; margin: 0; color: rgba(255,255,255,.8); }
+    .calendario-resumo a { color: #ffd09a; }
+    @media (max-width: 991.98px) {
+        .atividades-columns { grid-template-columns: minmax(0, 1fr); }
+        .calendario-resumo { padding-left: 0; padding-top: 1.5rem; border-left: 0; border-top: 1px solid rgba(255,255,255,.18); }
+    }
+
     .atividades-gallery-container {
         display: flex;
         gap: 16px;
@@ -361,6 +386,8 @@
     <!-- 2. LINHA DO TEMPO DE ATIVIDADES (CARROSSEL EXPANSIVO)     -->
     <!-- ========================================================= -->
     <section id="atividades-section" class="atividades-dark-section">
+        <div class="atividades-columns">
+        <div class="atividades-timeline">
         
         <div class="d-flex align-items-end justify-content-between mb-4">
             <div>
@@ -420,6 +447,25 @@
             {% endif %}
         </div>
 
+        </div>
+        <aside class="calendario-resumo" aria-labelledby="calendario-resumo-titulo">
+            <span class="text-uppercase fw-bold small text-light opacity-75">Calendário · Escalas</span>
+            <h2 id="calendario-resumo-titulo">Últimas atividades</h2>
+            <p class="small text-light opacity-75">As 6 atividades com as datas mais recentes.</p>
+            <ol class="calendario-resumo-lista">
+                {% for atividade in atividades_calendario %}
+                <li class="calendario-resumo-item">
+                    <time datetime="{{ atividade.start }}">{{ atividade.data|date:"d/m/Y" }}</time>
+                    <h3>{{ atividade.title }}</h3>
+                    {% if atividade.description %}<p>{{ atividade.description|truncatewords:30 }}</p>{% endif %}
+                </li>
+                {% empty %}
+                <li class="calendario-resumo-item">{% if calendario_erro %}Não foi possível carregar as atividades do calendário.{% else %}Nenhuma atividade cadastrada no calendário.{% endif %}</li>
+                {% endfor %}
+            </ol>
+            <a href="{% url 'pagina_escala' %}">Ver calendário completo <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></a>
+        </aside>
+        </div>
     </section>
 
     <!-- ========================================================= -->

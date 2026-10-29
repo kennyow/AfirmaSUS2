@@ -18,6 +18,29 @@ main_views = import_module('core.views.main_views')
 management_views = import_module('core.views.management_views')
 
 
+class ResumoCalendarioHomeTests(TestCase):
+    def test_resumo_exibe_seis_datas_mais_recentes_e_escapa_descricao(self):
+        notas = [
+            {'id': str(dia), 'title': f'Atividade {dia}', 'start': f'2026-10-{dia:02}',
+             'description': '<script>alert(1)</script>'}
+            for dia in [2, 7, 1, 5, 3, 6, 4]
+        ]
+        with patch.object(main_views, '_carregar_notas_calendario', return_value=notas):
+            resposta = self.client.get(reverse('home'))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual([nota['id'] for nota in resposta.context['atividades_calendario']],
+                         ['7', '6', '5', '4', '3', '2'])
+        self.assertContains(resposta, '07/10/2026')
+        self.assertContains(resposta, '&lt;script&gt;alert(1)&lt;/script&gt;')
+        self.assertNotContains(resposta, '<script>alert(1)</script>')
+
+    def test_resumo_sem_notas_mantem_pagina_disponivel(self):
+        with patch.object(main_views, '_carregar_notas_calendario', return_value=[]):
+            resposta = self.client.get(reverse('home'))
+        self.assertEqual(resposta.status_code, 200)
+        self.assertContains(resposta, 'Nenhuma atividade cadastrada no calendário.')
+
+
 class LinhaDoTempoMidiasTests(TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
