@@ -246,7 +246,7 @@ def editar_local(request, local_id):
   if request.method == 'POST':
     form = LocalForm(request.POST, request.FILES, instance=local)
     if form.is_valid():
-      form.save()  # Atualiza o Banco de Dados e o dados_locais.json
+      form.save()  # Atualiza o Banco de Dados e o territorio_dados.json
       return redirect('pagina_mapa')
   else:
     form = LocalForm(instance=local)

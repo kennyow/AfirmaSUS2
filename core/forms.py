@@ -82,8 +82,8 @@ class LocalForm(forms.ModelForm):
         if commit:
             local.save()
 
-            # Persistência síncrona no arquivo dados_locais.json
-            caminho_json = os.path.join(settings.DATA_DIR, 'dados_locais.json')
+            # Persistência síncrona no arquivo territorio_dados.json
+            caminho_json = os.path.join(settings.DATA_DIR, 'territorio_dados.json')
             try:
                 dados_existentes = []
                 if os.path.exists(caminho_json):
@@ -112,7 +112,7 @@ class LocalForm(forms.ModelForm):
                     json.dump(dados_existentes, f, ensure_ascii=False, indent=2)
 
             except Exception as e:
-                print(f"Erro ao salvar em dados_locais.json: {e}")
+                print(f"Erro ao salvar em territorio_dados.json: {e}")
 
         return local
 

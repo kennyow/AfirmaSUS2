@@ -10,7 +10,7 @@ from .utils import converter_link_drive, ordenar_atividades_timeline
 
 # Caminhos para os arquivos JSON na raiz do projeto
 FORMACOES_PATH = os.path.join(settings.DATA_DIR, 'formacoes.json')
-APRESENTACOES_PATH = os.path.join(settings.DATA_DIR, 'apresentacoes.json')
+APRESENTACOES_PATH = os.path.join(settings.DATA_DIR, 'slides_apresentacoes.json')
 VIDEOS_PATH = os.path.join(settings.DATA_DIR, 'videos.json')
 TIMELINE_PATH = os.path.join(settings.DATA_DIR, 'timeline.json')
 DYNAMIC_TIMELINE_PATH = os.path.join(settings.DATA_DIR, 'linhadotempodinamica.json')

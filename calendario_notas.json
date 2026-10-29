@@ -172,5 +172,15 @@
     "borderColor": "#4C2059",
     "textColor": "#ffffff",
     "description": "Convidado Lucas. Regras para o Versus."
+  },
+  {
+    "id": "1",
+    "title": "Frente de Pesquisa Resumos ENEX 2026",
+    "start": "2026-09-29",
+    "end": "2026-09-29",
+    "backgroundColor": "#4C2059",
+    "borderColor": "#4C2059",
+    "textColor": "#ffffff",
+    "description": ""
   }
 ]

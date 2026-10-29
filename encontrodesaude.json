@@ -3,7 +3,7 @@
     "id": 1,
     "nome": "Setor ACS Fernanda (Verde)",
     "cor": "green",
-    "status": "pendente",
+    "status": "concluido",
     "descricao": "Ação de saúde realizada e concluída no setor Norte.",
     "centroide": [-7.1332, -34.8548],
     "vertices": [

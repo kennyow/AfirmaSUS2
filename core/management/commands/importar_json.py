@@ -9,9 +9,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # ---------------------------------------------------------
-        # 1. IMPORTAÇÃO DOS LOCAIS (dados_locais.json)
+        # 1. IMPORTAÇÃO DOS LOCAIS (territorio_dados.json)
         # ---------------------------------------------------------
-        caminho_locais = settings.DATA_DIR / 'dados_locais.json'
+        caminho_locais = settings.DATA_DIR / 'territorio_dados.json'
         if os.path.exists(caminho_locais):
             with open(caminho_locais, 'r', encoding='utf-8') as f:
                 dados_locais = json.load(f)
