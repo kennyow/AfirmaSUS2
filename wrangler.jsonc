@@ -30,5 +30,26 @@
   },
   "build": {
     "command": "uv run python manage.py collectstatic --noinput --settings=setup.static_settings"
+  },
+  "python_modules": {
+    "exclude": [
+      ".venv/**",
+      ".venv-workers/**",
+      ".build-tools/**",
+      ".git/**",
+      "public/**",
+      "**/__pycache__/**",
+      "**/*.pyc",
+      "**/*.sqlite3",
+      "d1-migrations/**",
+      "docs/**",
+      "scripts/**",
+      "core/static/**",
+      "core/tests.py",
+      "core/test_*.py",
+      "cloudpilot/test_*.py",
+      "setup/test_*.py",
+      "*.json"
+    ]
   }
 }
