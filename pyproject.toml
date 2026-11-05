@@ -5,7 +5,7 @@ description = "Piloto isolado de login e arquivos públicos do AfirmaSUS-JP"
 requires-python = ">=3.13"
 dependencies = [
     "Django==5.2.18",
-    "Pillow==13.0.0",
+    "Pillow",
     "django-cf>=0.2.14",
 ]
 
