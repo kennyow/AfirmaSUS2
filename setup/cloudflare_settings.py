@@ -1,5 +1,15 @@
 """Experimental Worker configuration; validate on the real runtime before publishing."""
 import os
+import logging
+
+class WorkerExceptionFormatter(logging.Formatter):
+    def format(self, record):
+        message = record.getMessage()
+        if record.exc_info:
+            kind, error, _ = record.exc_info
+            message += ' | ' + kind.__name__ + ': ' + str(error)
+        return message.replace('\n', ' | ')
+
 
 from workers import env
 
@@ -35,8 +45,9 @@ SECURE_REFERRER_POLICY = 'same-origin'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {'summary': {'()': WorkerExceptionFormatter}},
     'handlers': {'worker_console': {
-        'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout',
+        'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout', 'formatter': 'summary',
     }},
     'loggers': {
         'django.request': {'handlers': ['worker_console'], 'level': 'ERROR', 'propagate': False},
