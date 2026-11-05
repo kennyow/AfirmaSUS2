@@ -5,6 +5,8 @@ import shutil
 import subprocess
 import sys
 
+subprocess.run([sys.executable, '-m', 'unittest', 'cloudpilot.test_worker_hashers'], check=True)
+
 ROOT = Path(__file__).resolve().parent.parent
 STAGE = ROOT / 'src'
 STAGE.mkdir(exist_ok=True)

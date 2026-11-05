@@ -7,6 +7,7 @@ dependencies = [
     "Django==5.2.18",
     "Pillow",
     "django-cf>=0.2.14",
+    "pycryptodome==3.23.0",
 ]
 
 [dependency-groups]
