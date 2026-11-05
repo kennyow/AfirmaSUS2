@@ -30,3 +30,16 @@ CSRF_COOKIE_SECURE = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'same-origin'
 
+
+# Send server-side exceptions to Workers Logs, without request bodies or locals.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'worker_console': {
+        'class': 'logging.StreamHandler', 'stream': 'ext://sys.stdout',
+    }},
+    'loggers': {
+        'django.request': {'handlers': ['worker_console'], 'level': 'ERROR', 'propagate': False},
+        'cloudpilot': {'handlers': ['worker_console'], 'level': 'ERROR', 'propagate': False},
+    },
+}
