@@ -29,6 +29,6 @@
     "MEDIA_PUBLIC_URL": "https://pub-f50ba729080c4dd98b6269e7c2b994f7.r2.dev"
   },
   "build": {
-    "command": "uv run python manage.py collectstatic --noinput --settings=setup.pilot_settings"
+    "command": "uv run python manage.py collectstatic --noinput --settings=setup.static_settings"
   }
 }
