@@ -127,7 +127,7 @@ compra, assinatura, deploy nem cobrança autorizada neste trabalho.
 O backend Django/D1 não oferece transações/rollback e há limitações de ORM/admin.
 Precisamos verificar as operações existentes antes de migrar o site completo.
 
-Fontes oficiais:
+Fontes oficiais: Teste de publicação na Cloudflare
 - https://developers.cloudflare.com/workers/languages/python/packages/django/
 - https://github.com/cloudflare/workers-py/tree/main/packages/django-cf
 - https://developers.cloudflare.com/workers/platform/pricing/
