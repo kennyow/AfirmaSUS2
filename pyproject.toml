@@ -1,0 +1,13 @@
+[project]
+name = "afirmasusjp-cloudflare-pilot"
+version = "0.1.0"
+description = "Piloto isolado de login e arquivos públicos do AfirmaSUS-JP"
+requires-python = ">=3.13"
+dependencies = [
+    "Django==5.2.18",
+    "Pillow==13.0.0",
+    "django-cf>=0.2.14",
+]
+
+[dependency-groups]
+dev = ["workers-py", "workers-runtime-sdk"]
