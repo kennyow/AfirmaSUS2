@@ -2,18 +2,33 @@
   "name": "afirmasusjp",
   "main": "worker.py",
   "compatibility_date": "2026-11-05",
-  "compatibility_flags": ["python_workers"],
+  "compatibility_flags": [
+    "python_workers"
+  ],
   "workers_dev": true,
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "afirmasusjp-piloto",
-    "database_id": "18c08479-7849-4eba-a269-d212bb28236e",
-    "migrations_dir": "d1-migrations"
-  }],
-  "r2_buckets": [{"binding": "BUCKET", "bucket_name": "afirmasusjp-piloto-publicos"}],
-  "assets": {"directory": "public", "binding": "ASSETS"},
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "afirmasusjp-piloto",
+      "database_id": "18c08479-7849-4eba-a269-d212bb28236e",
+      "migrations_dir": "d1-migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "afirmasusjp-piloto-publicos"
+    }
+  ],
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS"
+  },
   "vars": {
     "DJANGO_ALLOWED_HOSTS": "afirmasusjp.kennyow86.workers.dev",
     "MEDIA_PUBLIC_URL": "https://pub-f50ba729080c4dd98b6269e7c2b994f7.r2.dev"
+  },
+  "build": {
+    "command": "uv run python manage.py collectstatic --noinput --settings=setup.pilot_settings"
   }
 }

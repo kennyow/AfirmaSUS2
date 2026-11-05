@@ -1,0 +1,29 @@
+{% extends 'cloudpilot/base.html' %}
+{% block content %}
+<h1>Arquivos da comunidade</h1>
+<p>Consulte os registros públicos enviados pela equipe.</p>
+{% if perms.cloudpilot.add_arquivopublico %}
+<section class="panel" aria-labelledby="enviar-titulo">
+  <h2 id="enviar-titulo">Enviar um arquivo</h2>
+  <p>Selecione uma imagem ou documento no seu dispositivo. Após o envio, ele ficará disponível nesta biblioteca.</p>
+  <form method="post" action="{% url 'pilot:enviar' %}" enctype="multipart/form-data">
+    {% csrf_token %}{{ form.as_p }}
+    <p class="muted">Publique apenas conteúdo autorizado para acesso público.</p>
+    <button type="submit">Enviar e publicar</button>
+  </form>
+</section>
+{% elif user.is_authenticated %}
+<p class="notice">Sua conta pode consultar os arquivos. Solicite ao responsável a permissão de envio.</p>
+{% endif %}
+<p class="muted">Total registrado nesta biblioteca: {{ total_bytes|filesizeformat }}. Exibindo os 100 envios mais recentes.</p>
+<div class="grid">
+{% for item in arquivos %}
+<article class="panel">
+  {% if item.imagem %}<img class="preview" src="{{ item.arquivo.url }}" alt="{{ item.titulo }}" loading="lazy">{% endif %}
+  <h2>{{ item.titulo }}</h2>
+  <p class="muted">{{ item.nome_original }} · {{ item.tamanho|filesizeformat }}<br>{{ item.enviado_em|date:'d/m/Y' }}</p>
+  <a href="{% url 'pilot:baixar' item.pk %}">Baixar arquivo</a>
+</article>
+{% empty %}<p>A biblioteca ainda não recebeu arquivos.</p>{% endfor %}
+</div>
+{% endblock %}
