@@ -1,6 +1,6 @@
 {
   "name": "afirmasusjp",
-  "main": "worker.py",
+  "main": "src/worker.py",
   "compatibility_date": "2026-11-05",
   "compatibility_flags": [
     "python_workers"
@@ -29,27 +29,22 @@
     "MEDIA_PUBLIC_URL": "https://pub-f50ba729080c4dd98b6269e7c2b994f7.r2.dev"
   },
   "build": {
-    "command": "uv run python manage.py collectstatic --noinput --settings=setup.static_settings"
+    "command": "uv run python scripts/prepare_cloudflare.py"
   },
   "python_modules": {
     "exclude": [
-      ".venv/**",
-      ".venv-workers/**",
-      ".build-tools/**",
-      ".git/**",
-      "public/**",
-      "**/__pycache__/**",
       "**/*.pyc",
-      "**/*.sqlite3",
-      "d1-migrations/**",
-      "docs/**",
-      "scripts/**",
-      "core/static/**",
-      "core/tests.py",
-      "core/test_*.py",
-      "cloudpilot/test_*.py",
-      "setup/test_*.py",
-      "*.json"
+      "**/__pycache__",
+      "**/__pycache__/**"
     ]
-  }
+  },
+  "rules": [
+    {
+      "type": "Text",
+      "globs": [
+        "**/*.html"
+      ],
+      "fallthrough": true
+    }
+  ]
 }
