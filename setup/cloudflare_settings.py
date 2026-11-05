@@ -57,3 +57,7 @@ LOGGING = {
 
 # Pyodide lacks hashlib.pbkdf2_hmac; retain PBKDF2-SHA256 and the source work factor.
 PASSWORD_HASHERS = ['cloudpilot.hashers.WorkerPBKDF2PasswordHasher']
+
+PORTAL_PREVIEW = True
+DATA_DIR = BASE_DIR / 'portal_data'
+

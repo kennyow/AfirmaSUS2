@@ -50,6 +50,10 @@ class Integrante(models.Model):
 
     @property
     def foto_url_direta(self):
+        from django.conf import settings
+        if getattr(settings, 'PORTAL_PREVIEW', False):
+            from .views.utils import converter_link_drive
+            return converter_link_drive(self.foto)
         """Extrai o ID do Google Drive e redireciona para o CDN de imagens lh3.googleusercontent.com"""
         if not self.foto:
             return ''

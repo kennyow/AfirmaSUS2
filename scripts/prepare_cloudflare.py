@@ -1,6 +1,7 @@
 """Stage only application sources for Wrangler; never scan a build environment."""
 import os
 from pathlib import Path
+from portal_data import stage_documents
 import shutil
 import subprocess
 import sys
@@ -24,7 +25,7 @@ for name in ('core', 'setup', 'cloudpilot'):
         ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'test_*.py', 'tests.py', 'static'),
     )
 shutil.copyfile(ROOT / 'worker.py', STAGE / 'worker.py')
+stage_documents(ROOT, STAGE / 'portal_data')
 assert (STAGE / 'cloudpilot' / 'templates' / 'cloudpilot' / 'catalogo.html').is_file()
 assert (STAGE / 'setup' / 'cloudflare_settings.py').is_file()
-print('Aplicacao preparada em src; ambientes, bancos e JSON de conteudo ficam fora do pacote.')
-
+print('Aplicacao preparada em src com documentos selecionados para a previa; ambientes e bancos ficam fora do pacote.')

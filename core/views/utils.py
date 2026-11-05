@@ -33,6 +33,11 @@ MESES = {
 
 
 def converter_link_drive(url):
+    from django.conf import settings
+    if getattr(settings, 'PORTAL_PREVIEW', False):
+        if url and ('drive.google.com' in url or 'googleusercontent.com' in url):
+            return settings.STATIC_URL + 'core/media-pendente.svg'
+        return url or ''
     """ Converte link de visualização do Google Drive para link direto de imagem """
     if not url:
         return ""

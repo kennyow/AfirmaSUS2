@@ -1,0 +1,13 @@
+<div id="{{ chart_id }}-plot" style="min-height:360px" role="img" aria-label="Gráfico de atividades"></div>
+{{ data|json_script:chart_id }}
+<script>
+(() => {
+  const root = document.getElementById('{{ chart_id|escapejs }}-plot');
+  const payload = root.nextElementSibling;
+  const data = JSON.parse(payload.textContent);
+  const trace = '{{ kind|escapejs }}' === 'pie'
+    ? {type:'pie', labels:data.labels, values:data.values, hole:0.45}
+    : {type:'scatter', mode:'lines+markers', x:data.x, y:data.y, fill:'tozeroy', line:{color:'#FF8C00'}};
+  Plotly.newPlot(root, [trace], {height:360, margin:{l:35,r:15,t:20,b:45}, paper_bgcolor:'rgba(0,0,0,0)'}, {responsive:true,displayModeBar:false});
+})();
+</script>

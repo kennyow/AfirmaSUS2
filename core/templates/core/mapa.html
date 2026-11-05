@@ -177,12 +177,7 @@
     });
 
     function converterLinkDriveJS(url) {
-        if (!url) return "";
-        var match = url.match(/(?:id=|\/d\/)([\w-]+)/);
-        if (match && match[1]) {
-            return "https://lh3.googleusercontent.com/d/" + match[1];
-        }
-        return url;
+        return url || "";
     }
 
     function renderizarPainelDetalhes(data) {

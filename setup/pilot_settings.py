@@ -18,3 +18,6 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 12 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 512 * 1024
 DATA_UPLOAD_MAX_NUMBER_FILES = 1
 
+MIDDLEWARE += ['cloudpilot.portal_preview.PortalPreviewMiddleware']
+TEMPLATES[0]['OPTIONS']['context_processors'] += ['cloudpilot.portal_preview.context']
+

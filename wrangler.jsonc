@@ -42,7 +42,8 @@
     {
       "type": "Text",
       "globs": [
-        "**/*.html"
+        "**/*.html",
+        "**/*.json"
       ],
       "fallthrough": true
     }

@@ -29,6 +29,7 @@
 </header>
 <main>
   <p class="notice">Versão de teste · Os arquivos desta biblioteca são públicos.</p>
+  {% if user.is_superuser %}<p><a href="{% url 'home' %}">Revisar páginas da plataforma original</a> · Prévia somente para consulta</p>{% endif %}
   {% for message in messages %}<p role="status" class="notice">{{ message }}</p>{% endfor %}
   {% block content %}{% endblock %}
 </main>

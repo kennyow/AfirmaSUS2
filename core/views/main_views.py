@@ -2,9 +2,6 @@ import os
 import json
 import logging
 from datetime import date
-import folium
-import pandas as pd
-import plotly.express as px
 from django.shortcuts import render, redirect
 from django.conf import settings
 from ..models import Local, Atividade, Integrante, EscalaTrabalho
@@ -212,7 +209,7 @@ def mapa_territorio(request):
             'lon': lon_val,
             'cor_hex': meta_cat['cor_hex'],
             'descricao': loc.descricao or 'Sem descrição cadastrada.',
-            'foto': loc.foto_url_direta if hasattr(loc, 'foto_url_direta') and loc.foto_url_direta else (loc.foto or ''),
+            'foto': converter_link_drive(loc.foto or ''),
             'escalas': escalas_local,
         })
 
@@ -300,6 +297,11 @@ def nova_aba_view(request):
 INDICADORES_PATH = os.path.join(settings.DATA_DIR, 'indicadores.json')
 
 def levantamento_estatistico(request):
+    if getattr(settings, 'PORTAL_PREVIEW', False):
+        from cloudpilot.portal_preview import statistics
+        return statistics(request)
+    import pandas as pd
+    import plotly.express as px
     # 1. Carrega os indicadores ajustáveis (mão/manual)
     indicadores_extras = {"participantes_impactados": 150, "formacoes_oficinas": 22}
     if os.path.exists(INDICADORES_PATH):

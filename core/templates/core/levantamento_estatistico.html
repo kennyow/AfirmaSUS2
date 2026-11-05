@@ -1,10 +1,11 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Levantamento Estatístico - AfirmaSUS-JP{% endblock %}
 
 {% block extra_head %}
 <!-- Plotly.js para suporte aos gráficos -->
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="{% static 'core/vendor/plotly.min.js' %}"></script>
 <style>
     .metric-card {
         background: #ffffff;

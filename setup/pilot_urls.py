@@ -8,6 +8,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', LoginView.as_view(template_name='cloudpilot/login.html'), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
+    path('plataforma/', include('setup.portal_preview_urls')),
     path('', include('cloudpilot.urls')),
 ]
 if settings.DEBUG:
