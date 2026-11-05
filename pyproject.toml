@@ -8,6 +8,7 @@ dependencies = [
     "Pillow",
     "django-cf>=0.2.14",
     "pycryptodome==3.23.0",
+    "tzdata",
 ]
 
 [dependency-groups]
