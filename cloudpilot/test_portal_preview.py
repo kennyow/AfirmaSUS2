@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import Local
+from core.models import EscalaTrabalho, Integrante, Local
 
 
 class PortalPreviewTests(TestCase):
@@ -20,7 +20,7 @@ class PortalPreviewTests(TestCase):
             with self.subTest(page=name):
                 response = self.client.get(reverse(name))
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, 'Somente consulta')
+                self.assertContains(response, 'Prévia para revisão')
                 self.assertNotContains(response, 'drive.google.com')
                 self.assertNotContains(response, 'googleusercontent.com')
 
@@ -40,6 +40,23 @@ class PortalPreviewTests(TestCase):
     def test_original_registration_is_not_exposed(self):
         self.client.force_login(self.admin)
         self.assertEqual(self.client.get('/plataforma/cadastrar/').status_code, 404)
+
+    def test_admin_can_create_and_link_schedule_to_location(self):
+        integrante = Integrante.objects.create(nome='Integrante de teste')
+        local = Local.objects.create(nome='Local de teste', lat=-7, lon=-34)
+        data = {'integrante': integrante.pk, 'dia_semana': 'Segunda-feira', 'turno': 'Manhã',
+                'horario_inicio': '08:00', 'horario_fim': '12:00'}
+        self.client.force_login(self.admin)
+        self.assertRedirects(self.client.post(reverse('cadastrar_escala'), data), reverse('pagina_escala'))
+        escala = EscalaTrabalho.objects.get()
+        self.assertIsNone(escala.local_id)
+        edit = reverse('editar_escala', args=[escala.pk])
+        self.assertRedirects(self.client.post(edit, {**data, 'local': local.pk}), reverse('pagina_escala'))
+        escala.refresh_from_db()
+        self.assertEqual(escala.local_id, local.pk)
+        self.assertEqual(EscalaTrabalho.objects.count(), 1)
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(edit, data).status_code, 403)
 
     def test_library_and_shared_login_stay_available(self):
         self.assertEqual(reverse('login'), '/login/')

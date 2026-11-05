@@ -1,4 +1,4 @@
-"""Administrator-only, read-only review of the original portal."""
+"""Restrict the pilot portal to administrators and enabled operations."""
 import json
 from collections import Counter
 from pathlib import Path
@@ -25,8 +25,10 @@ class PortalPreviewMiddleware(MiddlewareMixin):
             return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
         if not request.user.is_superuser:
             return HttpResponse('Esta prévia está disponível apenas ao administrador.', status=403)
+        if request.resolver_match.url_name in {'cadastrar_escala', 'editar_escala'} and request.method in ('GET', 'HEAD', 'POST'):
+            return None
         if request.method not in ('GET', 'HEAD') or request.resolver_match.url_name not in READ_ONLY_PAGES:
-            return HttpResponse('Esta prévia permite apenas consulta. Use a biblioteca para testar envios.', status=405)
+            return HttpResponse('Esta operação ainda não está disponível na prévia.', status=405)
         return None
 
 

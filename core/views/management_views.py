@@ -68,7 +68,7 @@ def cadastrar_local(request):
 @login_required
 def cadastrar_atividade(request):
     if request.method == 'POST':
-        form = AtividadeForm(request.POST)
+        form = AtividadeForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             messages.success(request, "Atividade cadastrada com sucesso!")
@@ -115,17 +115,18 @@ def pagina_escala(request):
     return render(request, 'core/escala.html', context)
 
 @login_required
-def cadastrar_escala(request):
+def cadastrar_escala(request, escala_id=None):
+    escala = get_object_or_404(EscalaTrabalho, pk=escala_id) if escala_id is not None else None
     if request.method == 'POST':
-        form = EscalaForm(request.POST)
+        form = EscalaForm(request.POST, instance=escala)
         if form.is_valid():
             form.save()
-            messages.success(request, "Nova escala cadastrada com sucesso!")
+            messages.success(request, "Escala salva com sucesso!")
             return redirect('pagina_escala')
     else:
-        form = EscalaForm()
+        form = EscalaForm(instance=escala)
 
-    return render(request, 'core/form_escala.html', {'form': form})
+    return render(request, 'core/form_escala.html', {'form': form, 'editando': escala is not None})
 
 
 @login_required
