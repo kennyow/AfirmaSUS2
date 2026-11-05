@@ -578,6 +578,23 @@
         "text": "2º Encontro Comunitário de Saúde, com foco em saúde mental, práticas integrativas e complementares em saúde, e promoção do cuidado centrado na pessoa."
       },
       "group": "Eventos"
+    },
+
+    {
+      "media": {
+      "url": "https://drive.google.com/file/d/1STnJPy_13j7uUbvi5fkLr6VxSqt4P337/view?usp=drive_link",
+      "caption": "ENEX 2026"
+        },
+      "start_date": {
+        "year": "2026",
+        "month": "11",
+        "day": "03"
+      },
+      "text": {
+        "headline": "ENEX 2026",
+        "text": "XXVII Encontro de Extensão. Aproximando estudantes, servidores e sociedade por meio da apresentação de trabalhos, oficinas, mesas-redondas e atividades de arte e cultura."
+      },
+      "group": "Eventos"
     }
   ]
 }
