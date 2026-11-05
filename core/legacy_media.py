@@ -15,6 +15,8 @@ def media_keys():
 def replace_legacy_media(text, media_url, placeholder):
     def replace(match):
         parsed = urlsplit(match[0])
+        if parsed.hostname == 'lh3.googleusercontent.com' and parsed.path.startswith(('/gps-cs-s/', '/grass-cs/')):
+            return match[0]
         path_id = re.search(r'/d/([\w-]+)', parsed.path)
         file_id = path_id[1] if path_id else parse_qs(parsed.query).get('id', [''])[0]
         key = media_keys().get(file_id)
