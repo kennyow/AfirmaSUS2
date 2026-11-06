@@ -1,0 +1,17 @@
+{% extends 'cloudpilot/base.html' %}
+{% block title %}{{ album.title }} · Galeria{% endblock %}
+{% block content %}
+<p><a href="{% url 'pilot:galeria' %}">Voltar à Galeria</a></p>
+<h1>{{ album.title }}</h1>
+{% if photo %}
+  <nav aria-label="Navegação de fotos">
+    {% if page.has_previous %}<a href="?foto={{ page.previous_page_number }}">Anterior</a> · {% endif %}
+    Foto {{ page.number }} de {{ page.paginator.count }}
+    {% if page.has_next %} · <a href="?foto={{ page.next_page_number }}">Próxima</a>{% endif %}
+  </nav>
+  <p><a href="{{ photo }}"><img src="{{ photo }}" alt="Foto {{ page.number }} de {{ album.title }}"
+                               style="display:block; max-width:100%; max-height:75vh; margin:auto"></a></p>
+{% else %}
+  <p>As fotos deste álbum aguardam envio.</p>
+{% endif %}
+{% endblock %}

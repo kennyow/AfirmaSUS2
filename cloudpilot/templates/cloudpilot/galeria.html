@@ -2,22 +2,19 @@
 {% block title %}Galeria · AfirmaSUS–JP{% endblock %}
 {% block content %}
 <h1>Galeria</h1>
-<p>Fotos do projeto AfirmaSUS–JP. Selecione uma imagem para abrir em tamanho original.</p>
-<div class="grid">
-  {% for url in photos %}
-    <a href="{{ url }}">
-      <img class="preview" src="{{ url }}" loading="lazy" width="240" height="180"
-           alt="Abrir foto {{ forloop.counter|add:page.start_index|add:'-1' }} do projeto">
-    </a>
-  {% empty %}
-    <p>Ainda não há fotos na galeria.</p>
+<p>Deslize para ver os álbuns. Selecione a capa para abrir as fotos do evento em uma nova aba.</p>
+<div aria-label="Álbuns de fotos" tabindex="0"
+     style="display:flex; gap:1rem; overflow-x:auto; scroll-snap-type:x mandatory; padding:0.25rem 0.25rem 1rem">
+  {% for album in albums %}
+    <article class="panel" style="flex:0 0 min(260px, 80%); scroll-snap-align:start; margin:0">
+      <a href="{% url 'pilot:album' album.index %}" target="_blank" rel="noopener">
+        {% if album.cover %}
+          <img class="preview" src="{{ album.cover }}" alt="" loading="lazy" width="240" height="180">
+        {% endif %}
+        <strong>{{ album.title }}</strong>
+      </a>
+      <p class="muted">{{ album.available }} de {{ album.total }} fotos disponíveis</p>
+    </article>
   {% endfor %}
 </div>
-{% if page.paginator.num_pages > 1 %}
-<nav aria-label="Paginação da galeria">
-  {% if page.has_previous %}<a href="?pagina={{ page.previous_page_number }}">Anterior</a> · {% endif %}
-  Página {{ page.number }} de {{ page.paginator.num_pages }}
-  {% if page.has_next %} · <a href="?pagina={{ page.next_page_number }}">Próxima</a>{% endif %}
-</nav>
-{% endif %}
 {% endblock %}
