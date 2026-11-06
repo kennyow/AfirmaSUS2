@@ -70,7 +70,7 @@
                                     <a href="{% url 'editar_ata' lembrete.ata.pk %}#secao-acoes" data-pilot-edit class="small">Abrir ata</a>
                                 </div>
                                 {% if chave != 'concluidos' %}
-                                <form method="post" action="{% url 'concluir_acao_ata' lembrete.ata.pk lembrete.acao.id %}">
+                                <form method="post" data-pilot-edit action="{% url 'concluir_acao_ata' lembrete.ata.pk lembrete.acao.id %}">
                                     {% csrf_token %}
                                     <button class="btn btn-outline-success btn-sm" type="submit">Marcar concluída</button>
                                 </form>

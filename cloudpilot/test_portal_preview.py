@@ -116,6 +116,23 @@ class PortalPreviewTests(TestCase):
         self.client.force_login(self.member)
         self.assertEqual(self.client.post(exportar, data).status_code, 403)
 
+    def test_only_admin_can_complete_a_minutes_reminder(self):
+        content = _conteudo_vazio()
+        content['acoes'] = [{'id': 'acao-1', 'lembrete': {'data': '2026-11-06'}}]
+        ata = AtaReuniao.objects.create(
+            titulo='Ata com lembrete', data='2026-11-06', conteudo=content,
+            criada_por=self.admin, atualizada_por=self.admin,
+        )
+        concluir = reverse('concluir_acao_ata', args=[ata.pk, 'acao-1'])
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(concluir).status_code, 403)
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(concluir).status_code, 405)
+        response = self.client.post(concluir, follow=True)
+        self.assertContains(response, 'Ata com lembrete')
+        ata.refresh_from_db()
+        self.assertEqual(ata.conteudo['acoes'][0]['status'], 'Concluída')
+
     @override_settings(CALENDARIO_NO_BANCO=True)
     def test_admin_can_add_and_edit_persistent_calendar_note(self):
         self.client.force_login(self.admin)
