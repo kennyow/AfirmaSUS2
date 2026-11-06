@@ -41,6 +41,18 @@ class PortalPreviewTests(TestCase):
         self.client.force_login(self.admin)
         self.assertEqual(self.client.get('/plataforma/cadastrar/').status_code, 404)
 
+    def test_admin_can_save_and_edit_map_location(self):
+        self.client.force_login(self.admin)
+        data = {'nome': 'Local de teste', 'categoria': 'Saúde', 'lat': '-7.13', 'lon': '-34.85'}
+        self.assertRedirects(self.client.post(reverse('cadastrar_local'), data), reverse('pagina_mapa'))
+        local = Local.objects.get()
+        edit = reverse('editar_local', args=[local.pk])
+        self.assertRedirects(self.client.post(edit, {**data, 'nome': 'Local revisado'}), reverse('pagina_mapa'))
+        local.refresh_from_db()
+        self.assertEqual(local.nome, 'Local revisado')
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(edit, data).status_code, 403)
+
     def test_admin_can_create_and_link_schedule_to_location(self):
         integrante = Integrante.objects.create(nome='Integrante de teste')
         local = Local.objects.create(nome='Local de teste', lat=-7, lon=-34)

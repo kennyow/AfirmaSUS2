@@ -14,7 +14,7 @@
                     </a>
                 </div>
                 <div class="card-body p-4">
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" data-pilot-edit>
                         {% csrf_token %}
                         
                         {% if form.non_field_errors %}

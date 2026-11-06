@@ -81,6 +81,8 @@ class LocalForm(forms.ModelForm):
 
         if commit:
             local.save()
+            if getattr(settings, 'PORTAL_PREVIEW', False):
+                return local
 
             # Persistência síncrona no arquivo territorio_dados.json
             caminho_json = os.path.join(settings.DATA_DIR, 'territorio_dados.json')

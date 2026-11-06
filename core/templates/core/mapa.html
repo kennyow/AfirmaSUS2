@@ -80,7 +80,7 @@
         </div>
 
         {% if user.is_authenticated %}
-            <a href="{% url 'cadastrar_local' %}" class="btn btn-success fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2" style="border-radius: 12px;">
+            <a href="{% url 'cadastrar_local' %}" data-pilot-edit class="btn btn-success fw-bold px-3 py-2 shadow-sm d-inline-flex align-items-center gap-2" style="border-radius: 12px;">
                 <i class="fas fa-plus-circle"></i> + Novo Local
             </a>
         {% endif %}
@@ -136,6 +136,11 @@
 
 <script>
     var isUserAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+    const editLocalUrl = "{% url 'editar_local' 0 %}";
+    function escapeHtml(value) {
+        const entities = {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'};
+        return String(value ?? '').replace(/[&<>"']/g, char => entities[char]);
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
         var map = L.map('mapa-leaflet').setView([-7.13508, -34.85575], 16);
@@ -146,7 +151,7 @@
             attribution: 'Tiles &copy; Esri'
         }).addTo(map);
 
-        var locais = {{ locais_json|safe }};
+        var locais = JSON.parse('{{ locais_json|escapejs }}');
 
         locais.forEach(function (loc) {
             var corHex = loc.cor_hex || '#28a745';
@@ -168,7 +173,7 @@
             });
 
             var marker = L.marker([loc.lat, loc.lon], { icon: customIcon }).addTo(map);
-            marker.bindTooltip(`<b>${loc.nome}</b> (${loc.categoria})`);
+            marker.bindTooltip(`<b>${escapeHtml(loc.nome)}</b> (${escapeHtml(loc.categoria)})`);
 
             marker.on('click', function () {
                 renderizarPainelDetalhes(loc);
@@ -177,7 +182,7 @@
     });
 
     function converterLinkDriveJS(url) {
-        return url || "";
+        return typeof url === 'string' && /^(https?:\/\/|\/static\/)/i.test(url) ? escapeHtml(url) : '';
     }
 
     function renderizarPainelDetalhes(data) {
@@ -194,7 +199,7 @@
             ? `<img src="${fotoUrl}" class="img-fluid rounded-3 mb-3 shadow-sm" style="max-height: 200px; width:100%; object-fit:cover;">` 
             : '';
 
-        var descricaoFormatada = (data.descricao || 'Sem descrição cadastrada.')
+        var descricaoFormatada = escapeHtml(data.descricao || 'Sem descrição cadastrada.')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
             .replace(/\n/g, '<br>');
 
@@ -202,20 +207,21 @@
         if (data.escalas && data.escalas.length > 0) {
             escalasHtml += `<h6 class="fw-bold text-dark mt-3 mb-2">👥 Integrantes Escalados:</h6><div class="list-group list-group-flush mb-3">`;
             data.escalas.forEach(function(item) {
-                var fotoUser = item.foto 
-                    ? `<img src="${item.foto}" class="rounded-circle me-2" style="width:30px; height:30px; object-fit:cover;">`
-                    : `<div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center me-2" style="width:30px; height:30px; font-size:12px;">${item.nome.charAt(0)}</div>`;
+                const fotoIntegrante = converterLinkDriveJS(item.foto);
+                var fotoUser = fotoIntegrante
+                    ? `<img src="${fotoIntegrante}" class="rounded-circle me-2" style="width:30px; height:30px; object-fit:cover;">`
+                    : `<div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center me-2" style="width:30px; height:30px; font-size:12px;">${escapeHtml(item.nome.charAt(0))}</div>`;
 
                 escalasHtml += `
                     <div class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between border-bottom">
                         <div class="d-flex align-items-center">
                             ${fotoUser}
                             <div>
-                                <strong class="d-block text-dark small" style="line-height:1.2;">${item.nome}</strong>
-                                <small class="text-muted" style="font-size:11px;">${item.dia} - ${item.turno}</small>
+                                <strong class="d-block text-dark small" style="line-height:1.2;">${escapeHtml(item.nome)}</strong>
+                                <small class="text-muted" style="font-size:11px;">${escapeHtml(item.dia)} - ${escapeHtml(item.turno)}</small>
                             </div>
                         </div>
-                        <span class="badge bg-light text-dark border" style="font-size:10px;">${item.horario}</span>
+                        <span class="badge bg-light text-dark border" style="font-size:10px;">${escapeHtml(item.horario)}</span>
                     </div>
                 `;
             });
@@ -225,7 +231,7 @@
         // Botão de edição (visível se autenticado)
         var btnEditarHtml = isUserAuthenticated 
             ? `<div class="mt-3 text-end">
-                    <a href="/local/${data.id}/editar/" class="btn btn-outline-warning text-dark btn-sm fw-bold px-3 py-1 shadow-sm rounded-3">
+                    <a href="${editLocalUrl.replace('/0/editar/', '/' + Number(data.id) + '/editar/')}" class="btn btn-outline-warning text-dark btn-sm fw-bold px-3 py-1 shadow-sm rounded-3">
                         ✏️ Editar Local
                     </a>
                </div>` 
@@ -235,12 +241,12 @@
             <div class="text-start">
                 ${imgHtml}
                 <div class="d-flex align-items-center justify-content-between mb-2">
-                    <h4 class="fw-bold text-dark m-0">${data.nome}</h4>
+                    <h4 class="fw-bold text-dark m-0">${escapeHtml(data.nome)}</h4>
                 </div>
                 <div class="mb-2">
-                    <span class="badge bg-light text-dark border me-1"><b>Categoria:</b> ${data.categoria}</span>
-                    <span class="badge bg-light text-dark border me-1"><b>Distrito:</b> ${data.distrito}</span>
-                    <span class="badge bg-warning text-dark border"><b>Status:</b> ${data.status}</span>
+                    <span class="badge bg-light text-dark border me-1"><b>Categoria:</b> ${escapeHtml(data.categoria)}</span>
+                    <span class="badge bg-light text-dark border me-1"><b>Distrito:</b> ${escapeHtml(data.distrito)}</span>
+                    <span class="badge bg-warning text-dark border"><b>Status:</b> ${escapeHtml(data.status)}</span>
                 </div>
                 <hr class="my-2">
                 <div class="alert alert-light border small text-secondary p-3 mb-2" style="line-height: 1.6;">
