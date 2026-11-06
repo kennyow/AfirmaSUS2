@@ -1,4 +1,6 @@
 import json
+from io import BytesIO
+from zipfile import ZipFile
 
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
@@ -92,6 +94,27 @@ class PortalPreviewTests(TestCase):
         self.assertEqual(ata.criada_por, self.admin)
         self.client.force_login(self.member)
         self.assertEqual(self.client.post(edit, data).status_code, 403)
+
+    def test_admin_can_queue_and_export_minutes_in_preview(self):
+        self.client.force_login(self.admin)
+        ata = AtaReuniao.objects.create(
+            titulo='Ata piloto', data='2026-11-06', conteudo=_conteudo_vazio(),
+            criada_por=self.admin, atualizada_por=self.admin,
+        )
+        fila = reverse('alterar_fila_ata', args=[ata.pk])
+        exportar = reverse('exportar_atas')
+        data = {'atas': [str(ata.pk)], 'formatos': ['pdf', 'docx', 'xlsx'], 'modo': 'juntos'}
+        self.assertEqual(self.client.get(fila).status_code, 405)
+        self.assertEqual(self.client.post(fila).status_code, 302)
+        self.assertContains(self.client.get(reverse('fila_atas')), 'Ata piloto')
+        response = self.client.post(exportar, data)
+        self.assertEqual(response.status_code, 200)
+        with ZipFile(BytesIO(response.content)) as archive:
+            self.assertEqual(set(archive.namelist()), {'Atas_Reuniao.pdf', 'Atas_Reuniao.docx', 'Atas_Reuniao.xlsx'})
+        ata.refresh_from_db()
+        self.assertIsNotNone(ata.exportada_em)
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(exportar, data).status_code, 403)
 
     @override_settings(CALENDARIO_NO_BANCO=True)
     def test_admin_can_add_and_edit_persistent_calendar_note(self):

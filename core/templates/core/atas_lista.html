@@ -100,7 +100,7 @@
         {% endif %}
 
         {% if pagina_atas == 'fila' and grupos %}
-        <form id="exportar-atas-form" method="post" action="{% url 'exportar_atas' %}" class="card card-body shadow-sm mb-4">
+        <form id="exportar-atas-form" method="post" data-pilot-edit action="{% url 'exportar_atas' %}" class="card card-body shadow-sm mb-4">
             {% csrf_token %}
             <h3 class="h5 fw-bold mb-3">Exportar atas selecionadas</h3>
             <div class="d-flex flex-wrap gap-3 mb-3">
@@ -156,7 +156,7 @@
                             </div>
                             <div class="d-flex flex-wrap gap-2">
                                 <a href="{% url 'editar_ata' ata.pk %}" data-pilot-edit class="btn btn-outline-primary btn-sm">Abrir / editar</a>
-                                <form method="post" action="{% url 'alterar_fila_ata' ata.pk %}">
+                                <form method="post" data-pilot-edit action="{% url 'alterar_fila_ata' ata.pk %}">
                                     {% csrf_token %}
                                     {% if pagina_atas == 'fila' %}<input type="hidden" name="origem" value="fila">{% endif %}
                                     <button class="btn btn-outline-secondary btn-sm" type="submit">

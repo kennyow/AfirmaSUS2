@@ -147,7 +147,7 @@
         </div>
     </form>
     {% if ata %}
-    <form method="post" action="{% url 'alterar_fila_ata' ata.pk %}" class="mb-5">
+    <form method="post" data-pilot-edit action="{% url 'alterar_fila_ata' ata.pk %}" class="mb-5">
         {% csrf_token %}
         <button class="btn btn-outline-primary" type="submit">
             {% if ata.na_fila %}Remover da fila de exportação{% else %}Adicionar à fila de exportação{% endif %}

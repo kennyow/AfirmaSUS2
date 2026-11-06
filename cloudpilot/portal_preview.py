@@ -19,6 +19,7 @@ EDITABLE_PAGES = frozenset({
     'cadastrar_escala', 'editar_escala', 'cadastrar_local', 'editar_local',
     'nova_ata', 'editar_ata',
 })
+POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas'})
 
 
 class PortalPreviewMiddleware(MiddlewareMixin):
@@ -30,6 +31,8 @@ class PortalPreviewMiddleware(MiddlewareMixin):
         if not request.user.is_superuser:
             return HttpResponse('Esta prévia está disponível apenas ao administrador.', status=403)
         if request.resolver_match.url_name in EDITABLE_PAGES and request.method in ('GET', 'HEAD', 'POST'):
+            return None
+        if request.method == 'POST' and request.resolver_match.url_name in POST_ONLY_PAGES:
             return None
         if getattr(settings, 'CALENDARIO_NO_BANCO', False) and request.method == 'POST' and request.resolver_match.url_name in {'adicionar_nota_calendario', 'editar_nota_calendario'}:
             return None
