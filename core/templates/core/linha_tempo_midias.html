@@ -52,6 +52,7 @@
         <p class="text-muted m-0">Gerencie as atividades exibidas na Linha do Tempo da página de apresentação.</p>
     </div>
 
+    {% if portal_preview %}<section class="mb-4"><h4>Galeria</h4><a href="{% url 'pilot:galeria' %}">Ver fotos do projeto</a></section>{% endif %}
     <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3 gap-3">
             <h4 class="fw-bold text-primary m-0">🗓️ Linha do Tempo de Atividades</h4>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AfirmaSUS–JP · Arquivos</title>
+  <title>{% block title %}AfirmaSUS–JP · Arquivos{% endblock %}</title>
   <style>
     * { box-sizing: border-box; } body { margin: 0; color: #302637; background: #f7f5f9; font: 17px/1.6 system-ui, sans-serif; }
     header { background: #481859; color: white; padding: 24px max(20px, calc((100vw - 1080px)/2)); display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
@@ -22,6 +22,7 @@
 <body>
 <header>
   <div><a href="{% url 'pilot:catalogo' %}"><strong>AfirmaSUS–JP</strong></a><p>Memória, imagens e documentos do projeto</p></div>
+  <nav aria-label="Mídias"><a href="{% url 'pilot:galeria' %}">Mídias · Galeria</a></nav>
   <div>{% if user.is_authenticated %}
     <span>Olá, {{ user.first_name|default:user.username }}</span>
     <form class="inline" action="{% url 'logout' %}" method="post">{% csrf_token %}<button>Sair</button></form>
