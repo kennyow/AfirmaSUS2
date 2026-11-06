@@ -1,8 +1,11 @@
+import json
+
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from core.models import EscalaTrabalho, Integrante, Local, NotaCalendario
+from core.models import AtaReuniao, EscalaTrabalho, Integrante, Local, NotaCalendario
+from core.views.atas import _conteudo_vazio
 
 
 class PortalPreviewTests(TestCase):
@@ -75,6 +78,20 @@ class PortalPreviewTests(TestCase):
         self.assertEqual(reverse('logout'), '/logout/')
         self.assertEqual(self.client.get('/').status_code, 200)
         self.assertEqual(self.client.get('/health/').status_code, 200)
+
+    def test_admin_can_create_and_edit_minutes_in_preview(self):
+        self.client.force_login(self.admin)
+        data = {'titulo': 'Ata piloto', 'data': '2026-11-06', 'conteudo': json.dumps(_conteudo_vazio())}
+        self.assertEqual(self.client.post(reverse('nova_ata'), data).status_code, 302)
+        ata = AtaReuniao.objects.get()
+        edit = reverse('editar_ata', args=[ata.pk])
+        response = self.client.post(edit, {**data, 'titulo': 'Ata revisada'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.json(), {'ok': True, 'url': edit})
+        ata.refresh_from_db()
+        self.assertEqual(ata.titulo, 'Ata revisada')
+        self.assertEqual(ata.criada_por, self.admin)
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(edit, data).status_code, 403)
 
     @override_settings(CALENDARIO_NO_BANCO=True)
     def test_admin_can_add_and_edit_persistent_calendar_note(self):

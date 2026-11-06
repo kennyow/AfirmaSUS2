@@ -27,7 +27,7 @@
     </div>
     {% endif %}
 
-    <form method="post" id="ata-editor" action="{% if ata %}{% url 'editar_ata' ata.pk %}{% else %}{% url 'nova_ata' %}{% endif %}">
+    <form method="post" id="ata-editor" data-pilot-edit action="{% if ata %}{% url 'editar_ata' ata.pk %}{% else %}{% url 'nova_ata' %}{% endif %}">
         {% csrf_token %}
         {{ form.conteudo }}
         <p class="small text-muted" aria-live="polite" id="ata-save-state">Alterações salvas automaticamente.</p>

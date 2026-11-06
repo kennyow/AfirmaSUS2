@@ -19,7 +19,7 @@
             <p class="text-muted mb-0">Registre, acompanhe e exporte as atas da equipe.</p>
         </div>
         {% if pagina_atas != 'lembretes' %}
-        <a href="{% url 'nova_ata' %}" class="btn btn-primary">
+        <a href="{% url 'nova_ata' %}" data-pilot-edit class="btn btn-primary">
             <i class="fa-solid fa-plus me-1" aria-hidden="true"></i> Nova ata
         </a>
         {% endif %}
@@ -67,7 +67,7 @@
                                         {% if lembrete.acao.responsavel %}{{ lembrete.acao.responsavel }} · {% endif %}
                                         {{ lembrete.ata.titulo|default:"Ata sem título" }}
                                     </p>
-                                    <a href="{% url 'editar_ata' lembrete.ata.pk %}#secao-acoes" class="small">Abrir ata</a>
+                                    <a href="{% url 'editar_ata' lembrete.ata.pk %}#secao-acoes" data-pilot-edit class="small">Abrir ata</a>
                                 </div>
                                 {% if chave != 'concluidos' %}
                                 <form method="post" action="{% url 'concluir_acao_ata' lembrete.ata.pk lembrete.acao.id %}">
@@ -155,7 +155,7 @@
                                 </div>
                             </div>
                             <div class="d-flex flex-wrap gap-2">
-                                <a href="{% url 'editar_ata' ata.pk %}" class="btn btn-outline-primary btn-sm">Abrir / editar</a>
+                                <a href="{% url 'editar_ata' ata.pk %}" data-pilot-edit class="btn btn-outline-primary btn-sm">Abrir / editar</a>
                                 <form method="post" action="{% url 'alterar_fila_ata' ata.pk %}">
                                     {% csrf_token %}
                                     {% if pagina_atas == 'fila' %}<input type="hidden" name="origem" value="fila">{% endif %}
