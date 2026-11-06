@@ -14,17 +14,24 @@ def albums():
     return json.loads(Path(__file__).with_name('albuns.json').read_text(encoding='utf-8'))
 
 
-def available_uploads():
+def files_at(prefix):
     try:
-        _, names = default_storage.listdir('galeria')
+        _, names = default_storage.listdir(prefix)
     except FileNotFoundError:
-        return set()
-    return {f'galeria/{name}' for name in names}
+        return []
+    return names
+
+
+def available_uploads():
+    paths = {}
+    for prefix in [*(f'galeria/lote-{n:02d}' for n in range(1, 6)), 'galeria']:
+        paths.update({f'galeria/{name}': f'{prefix}/{name}' for name in files_at(prefix)})
+    return paths
 
 
 def album_photos(album, uploaded):
     return [
-        default_storage.url(key)
+        default_storage.url(uploaded.get(key, key))
         for key in album['keys']
         if key.startswith('legado/') or key in uploaded
     ]
@@ -59,3 +66,4 @@ def album(request, index):
         'page': page,
         'photo': page.object_list[0] if photos else None,
     })
+
