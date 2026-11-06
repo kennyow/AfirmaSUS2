@@ -27,6 +27,8 @@ class PortalPreviewMiddleware(MiddlewareMixin):
             return HttpResponse('Esta prévia está disponível apenas ao administrador.', status=403)
         if request.resolver_match.url_name in {'cadastrar_escala', 'editar_escala'} and request.method in ('GET', 'HEAD', 'POST'):
             return None
+        if getattr(settings, 'CALENDARIO_NO_BANCO', False) and request.method == 'POST' and request.resolver_match.url_name in {'adicionar_nota_calendario', 'editar_nota_calendario'}:
+            return None
         if request.method not in ('GET', 'HEAD') or request.resolver_match.url_name not in READ_ONLY_PAGES:
             return HttpResponse('Esta operação ainda não está disponível na prévia.', status=405)
         return None

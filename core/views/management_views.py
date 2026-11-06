@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from ..models import Local, Atividade, EscalaTrabalho
+from ..models import Local, Atividade, EscalaTrabalho, NotaCalendario
 from ..forms import LocalForm, AtividadeForm, EscalaForm
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,8 @@ CALENDARIO_NOTAS_PATH = settings.DATA_DIR / 'calendario_notas.json'
 
 
 def _carregar_notas_calendario():
+    if getattr(settings, 'CALENDARIO_NO_BANCO', False):
+        return list(NotaCalendario.objects.order_by('pk').values_list('dados', flat=True))
     try:
         with CALENDARIO_NOTAS_PATH.open(encoding='utf-8') as arquivo:
             notas = json.load(arquivo)
@@ -156,14 +158,18 @@ def adicionar_nota_calendario(request):
         return redirect('pagina_escala')
 
     try:
-        notas = _carregar_notas_calendario()
-        notas.append({
+        nota = {
             'id': f'nota-{uuid.uuid4()}',
             'title': titulo,
             'start': data_nota,
             'description': descricao,
-        })
-        _salvar_notas_calendario(notas)
+        }
+        if getattr(settings, 'CALENDARIO_NO_BANCO', False):
+            NotaCalendario.objects.create(pk=nota['id'], dados=nota)
+        else:
+            notas = _carregar_notas_calendario()
+            notas.append(nota)
+            _salvar_notas_calendario(notas)
     except (OSError, json.JSONDecodeError, ValueError):
         logger.exception("Não foi possível salvar a nota do calendário.")
         messages.error(request, "Não foi possível salvar a nota. Tente novamente.")
@@ -213,8 +219,12 @@ def editar_nota_calendario(request, note_id):
         return redirect('pagina_escala')
 
     try:
-        eventos = _carregar_notas_calendario()
-        evento = next((item for item in eventos if item['id'] == note_id), None)
+        no_banco = getattr(settings, 'CALENDARIO_NO_BANCO', False)
+        if no_banco:
+            evento = NotaCalendario.objects.filter(pk=note_id).values_list('dados', flat=True).first()
+        else:
+            eventos = _carregar_notas_calendario()
+            evento = next((item for item in eventos if item['id'] == note_id), None)
         if evento is None:
             messages.error(request, "O evento não foi encontrado.")
             return redirect('pagina_escala')
@@ -225,7 +235,12 @@ def editar_nota_calendario(request, note_id):
         })
         if 'end' in evento:
             evento['end'] = data_nota
-        _salvar_notas_calendario(eventos)
+        if no_banco:
+            if not NotaCalendario.objects.filter(pk=note_id).update(dados=evento):
+                messages.error(request, "O evento não foi encontrado.")
+                return redirect('pagina_escala')
+        else:
+            _salvar_notas_calendario(eventos)
     except (OSError, json.JSONDecodeError, ValueError):
         logger.exception("Não foi possível editar o evento %s do calendário.", note_id)
         messages.error(request, "Não foi possível salvar as alterações. Tente novamente.")

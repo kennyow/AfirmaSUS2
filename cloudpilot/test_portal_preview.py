@@ -1,8 +1,8 @@
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from core.models import EscalaTrabalho, Integrante, Local
+from core.models import EscalaTrabalho, Integrante, Local, NotaCalendario
 
 
 class PortalPreviewTests(TestCase):
@@ -63,3 +63,17 @@ class PortalPreviewTests(TestCase):
         self.assertEqual(reverse('logout'), '/logout/')
         self.assertEqual(self.client.get('/').status_code, 200)
         self.assertEqual(self.client.get('/health/').status_code, 200)
+
+    @override_settings(CALENDARIO_NO_BANCO=True)
+    def test_admin_can_add_and_edit_persistent_calendar_note(self):
+        self.client.force_login(self.admin)
+        data = {'title': 'Reunião de teste', 'date': '2026-11-06', 'description': 'Descrição'}
+        self.assertRedirects(self.client.post(reverse('adicionar_nota_calendario'), data), reverse('pagina_escala'))
+        nota = NotaCalendario.objects.get()
+        edit = reverse('editar_nota_calendario', args=[nota.pk])
+        self.assertRedirects(self.client.post(edit, {**data, 'title': 'Reunião atualizada'}), reverse('pagina_escala'))
+        response = self.client.get(reverse('pagina_escala'))
+        self.assertEqual(response.context['calendario_eventos'][0]['title'], 'Reunião atualizada')
+        self.assertEqual(NotaCalendario.objects.count(), 1)
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(edit, data).status_code, 403)

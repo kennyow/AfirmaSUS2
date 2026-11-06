@@ -4,6 +4,11 @@ from django.contrib.auth.models import User
 # ---------------------------------------------------------
 # 1. MODELO DE LOCAIS (MAPA INTERATIVO)
 # ---------------------------------------------------------
+class NotaCalendario(models.Model):
+    id = models.CharField(max_length=100, primary_key=True)
+    dados = models.JSONField()
+
+
 class Local(models.Model):
     nome = models.CharField(max_length=150)
     distrito = models.CharField(max_length=100, blank=True, null=True)

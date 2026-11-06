@@ -59,5 +59,6 @@ LOGGING = {
 PASSWORD_HASHERS = ['cloudpilot.hashers.WorkerPBKDF2PasswordHasher']
 
 PORTAL_PREVIEW = True
+CALENDARIO_NO_BANCO = True
 DATA_DIR = BASE_DIR / 'portal_data'
 

@@ -170,7 +170,7 @@
 <div class="modal fade" id="add-calendar-note-modal" tabindex="-1" aria-labelledby="add-calendar-note-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="POST" action="{% url 'adicionar_nota_calendario' %}">
+            <form method="POST" action="{% url 'adicionar_nota_calendario' %}" data-pilot-edit>
                 {% csrf_token %}
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold" id="add-calendar-note-title">Adicionar nota ao calendário</h5>
@@ -196,7 +196,7 @@
 <div class="modal fade" id="edit-calendar-event-modal" tabindex="-1" aria-labelledby="edit-calendar-event-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="POST" id="edit-calendar-event-form" data-url-template="{% url 'editar_nota_calendario' 'NOTE_ID' %}">
+            <form method="POST" id="edit-calendar-event-form" data-pilot-edit data-url-template="{% url 'editar_nota_calendario' 'NOTE_ID' %}">
                 {% csrf_token %}
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold" id="edit-calendar-event-title">Editar evento do calendário</h5>
