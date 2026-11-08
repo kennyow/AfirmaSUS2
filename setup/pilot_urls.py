@@ -4,12 +4,15 @@ from django.contrib import admin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import include, path
 
+from core.views.main_views import home
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('login/', LoginView.as_view(template_name='cloudpilot/login.html'), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('plataforma/', include('setup.portal_preview_urls')),
     path('', include('cloudpilot.urls')),
+    path('', home, name='home'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -29,10 +29,16 @@ class PortalPreviewTests(TestCase):
                 self.assertNotContains(response, 'drive.google.com')
                 self.assertNotContains(response, 'googleusercontent.com')
 
-    def test_preview_is_private_even_when_url_is_known(self):
-        self.assertEqual(self.client.get('/plataforma/').status_code, 302)
+    def test_public_sections_and_private_minutes(self):
+        for name in ('home', 'pagina_mapa', 'pagina_escala', 'equipe_informacoes',
+                     'formacoes', 'midias', 'levantamento_estatistico'):
+            with self.subTest(page=name):
+                self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+        self.assertEqual(reverse('home'), '/')
+        self.assertEqual(self.client.get(reverse('atas')).status_code, 302)
         self.client.force_login(self.member)
-        self.assertEqual(self.client.get('/plataforma/').status_code, 403)
+        self.assertEqual(self.client.get('/plataforma/').status_code, 200)
+        self.assertEqual(self.client.get(reverse('atas')).status_code, 403)
 
     def test_post_and_legacy_get_deletion_are_blocked(self):
         self.client.force_login(self.admin)

@@ -11,10 +11,11 @@ from django.template.loader import render_to_string
 from django.utils.deprecation import MiddlewareMixin
 
 
-READ_ONLY_PAGES = frozenset({
-    'home', 'pagina_mapa', 'pagina_escala', 'equipe_informacoes', 'atas',
-    'fila_atas', 'lembretes_atas', 'formacoes', 'midias', 'levantamento_estatistico',
+PUBLIC_PAGES = frozenset({
+    'home', 'pagina_mapa', 'pagina_escala', 'equipe_informacoes',
+    'formacoes', 'midias', 'levantamento_estatistico',
 })
+READ_ONLY_PAGES = PUBLIC_PAGES | {'atas', 'fila_atas', 'lembretes_atas'}
 EDITABLE_PAGES = frozenset({
     'cadastrar_escala', 'editar_escala', 'cadastrar_local', 'editar_local',
     'nova_ata', 'editar_ata',
@@ -24,7 +25,9 @@ POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas', 'concluir_acao
 
 class PortalPreviewMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
-        if not request.path.startswith('/plataforma/'):
+        if request.path != '/' and not request.path.startswith('/plataforma/'):
+            return None
+        if request.method in ('GET', 'HEAD') and request.resolver_match.url_name in PUBLIC_PAGES:
             return None
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
@@ -42,7 +45,7 @@ class PortalPreviewMiddleware(MiddlewareMixin):
 
 
 def context(request):
-    return {'portal_preview': request.path.startswith('/plataforma/')}
+    return {'portal_preview': request.path == '/' or request.path.startswith('/plataforma/')}
 
 
 def read_document(name, default):

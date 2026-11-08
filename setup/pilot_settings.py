@@ -7,7 +7,7 @@ MIDDLEWARE = ['cloudpilot.middleware.UploadSizeMiddleware', *[
     item for item in MIDDLEWARE if not item.startswith('whitenoise.')
 ]]
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/arquivos/'
 LOGOUT_REDIRECT_URL = '/'
 LANGUAGE_CODE = 'pt-br'
 TIME_ZONE = 'America/Sao_Paulo'

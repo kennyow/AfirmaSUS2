@@ -51,7 +51,7 @@ class UploadFlowTests(TestCase):
         return self.client.post('/arquivos/enviar/', {'titulo': 'Registro do projeto', 'arquivo': file or png()})
 
     def test_visitor_can_browse_but_not_upload(self):
-        self.assertEqual(self.client.get('/').status_code, 200)
+        self.assertEqual(self.client.get('/arquivos/').status_code, 200)
         self.assertEqual(self.upload().status_code, 302)
         self.assertFalse(ArquivoPublico.objects.exists())
 
@@ -66,7 +66,7 @@ class UploadFlowTests(TestCase):
         self.assertNotIn('registro', item.arquivo.name)
         self.assertTrue(default_storage.exists(item.arquivo.name))
         self.client.logout()
-        page = self.client.get('/')
+        page = self.client.get('/arquivos/')
         self.assertContains(page, 'Registro do projeto')
         self.assertContains(page, item.arquivo.url)
         download = self.client.get(f'/arquivos/{item.pk}/baixar/')

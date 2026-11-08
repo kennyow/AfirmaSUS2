@@ -5,7 +5,7 @@ from .galeria import album, galeria
 
 app_name = 'pilot'
 urlpatterns = [
-    path('', views.catalogo, name='catalogo'),
+    path('arquivos/', views.catalogo, name='catalogo'),
     path('arquivos/enviar/', views.enviar, name='enviar'),
     path('arquivos/<int:pk>/baixar/', views.baixar, name='baixar'),
     path('midias/galeria/', galeria, name='galeria'),
