@@ -25,7 +25,7 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "DJANGO_ALLOWED_HOSTS": "afirmasusjp.kennyow86.workers.dev",
+    "DJANGO_ALLOWED_HOSTS": "afirmasusjp.kennyow86.workers.dev,afirmasusjp.com.br",
     "MEDIA_PUBLIC_URL": "https://pub-f50ba729080c4dd98b6269e7c2b994f7.r2.dev"
   },
   "build": {
@@ -33,25 +33,13 @@
   },
   "python_modules": {
     "exclude": [
-      "**/*.pyc",
+      "**/__pycache__/**",
       "**/__pycache__",
-      "**/__pycache__/**"
+      "**/*.pyc"
     ]
   },
-  "rules": [
-    {
-      "type": "Text",
-      "globs": [
-        "**/*.html",
-        "**/*.json"
-      ],
-      "fallthrough": true
-    }
-  ],
-  "limits": {
-    "cpu_ms": 30000
-  },
-  "observability": {
-    "enabled": true
-  }
+  "rules": [{"type": "Text", "globs": ["**/*.html", "**/*.json"], "fallthrough": true}],
+  "limits": {"cpu_ms": 30000},
+  "observability": {"enabled": true}
 }
+
