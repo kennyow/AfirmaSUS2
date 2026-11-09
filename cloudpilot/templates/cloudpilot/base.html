@@ -29,8 +29,8 @@
   {% else %}<a href="{% url 'login' %}">Entrar para enviar</a>{% endif %}</div>
 </header>
 <main>
-  <p class="notice">Versão de teste · Os arquivos desta biblioteca são públicos.</p>
-  {% if user.is_superuser %}<p><a href="{% url 'home' %}">Revisar páginas da plataforma original</a> · Prévia somente para consulta</p>{% endif %}
+  <p class="notice">Os arquivos desta biblioteca são públicos.</p>
+  <p><a href="{% url 'home' %}">Voltar à página inicial</a></p>
   {% for message in messages %}<p role="status" class="notice">{{ message }}</p>{% endfor %}
   {% block content %}{% endblock %}
 </main>
