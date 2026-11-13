@@ -45,8 +45,8 @@
     {% include 'core/carrossel_estilo.html' %}
     .gallery-cover {
         width: 100%;
-        height: clamp(11rem, 22vw, 18rem);
-        object-fit: contain;
+        aspect-ratio: 4 / 3;
+        object-fit: cover;
         background-color: #f4f6f9;
     }
 </style>
@@ -80,7 +80,7 @@
             {% for album in gallery_albums %}
                 <article class="formation-slide">
                     <a class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden text-decoration-none"
-                       href="{% url 'pilot:album' album.index %}" target="_blank" rel="noopener">
+                       href="{% url 'pilot:album' album.index %}" data-gallery-album="{{ album.title }}">
                         {% if album.cover %}
                             <img class="gallery-cover" src="{{ album.cover }}" alt="" loading="lazy">
                         {% endif %}
@@ -95,6 +95,13 @@
             {% endfor %}
         </div>
     </section>
+    <dialog id="gallery-dialog" aria-labelledby="gallery-dialog-title" class="rounded-4 border-0 p-3" style="width:min(58rem, 95vw)">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 id="gallery-dialog-title" class="mb-0">Álbum</h5>
+            <form method="dialog"><button class="btn-close" aria-label="Fechar álbum"></button></form>
+        </div>
+        <iframe title="Fotos do álbum" style="width:100%; height:75vh; border:0"></iframe>
+    </dialog>
     {% endif %}
     <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3 gap-3">
@@ -413,6 +420,21 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if portal_preview %}
+<script>
+    const albumDialog = document.getElementById('gallery-dialog');
+    const albumFrame = albumDialog.querySelector('iframe');
+    document.querySelectorAll('[data-gallery-album]').forEach(link => {
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            document.getElementById('gallery-dialog-title').textContent = link.dataset.galleryAlbum;
+            albumFrame.src = link.href + '?interno=1';
+            albumDialog.showModal();
+        });
+    });
+    albumDialog.addEventListener('close', () => { albumFrame.src = 'about:blank'; });
+</script>
+{% endif %}
 {% if portal_preview %}{% include 'core/carrossel_script.html' %}{% endif %}
 <script>
     document.getElementById('selecionarAtividade')?.addEventListener('change', function () {
