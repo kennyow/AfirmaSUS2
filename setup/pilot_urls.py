@@ -6,9 +6,11 @@ from django.urls import include, path
 
 from core.views.main_views import home
 
+from cloudpilot.perfil import perfil
 from cloudpilot.materiais import abrir_material, adicionar_material, remover_material
 
 urlpatterns = [
+    path('perfil/', perfil, name='perfil_usuario'),
     path('materiais/adicionar/', adicionar_material, name='adicionar_material'),
     path('materiais/<str:key>/remover/', remover_material, name='remover_material'),
     path('materiais/<str:key>/visualizar/', abrir_material, name='visualizar_material'),

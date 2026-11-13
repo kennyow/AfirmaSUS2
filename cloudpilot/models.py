@@ -30,3 +30,13 @@ class ArquivoPublico(models.Model):
 
     def __str__(self):
         return self.titulo
+
+
+class FotoPerfil(models.Model):
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, primary_key=True, on_delete=models.CASCADE, related_name="foto_perfil")
+    arquivo = models.CharField(max_length=200)
+
+    @property
+    def url(self):
+        from django.core.files.storage import default_storage
+        return default_storage.url(self.arquivo)

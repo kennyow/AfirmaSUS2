@@ -1,0 +1,15 @@
+{% extends 'cloudpilot/base.html' %}
+{% block title %}Perfil · AfirmaSUS–JP{% endblock %}
+{% block content %}
+<h1>Perfil</h1>
+{% if user.foto_perfil %}
+<img src="{{ user.foto_perfil.url }}" alt="Foto atual" width="96" height="96" style="border-radius:50%;object-fit:cover">
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="panel">
+    {% csrf_token %}
+    <label for="profile-photo">Foto de perfil</label>
+    <input type="file" id="profile-photo" name="arquivo" accept=".jpg,.jpeg,.png,.webp" required>
+    <p class="helptext">JPG, PNG ou WebP de até 5 MB.</p>
+    <button type="submit">Salvar foto</button>
+</form>
+{% endblock %}
