@@ -76,13 +76,21 @@
         font-size: 0.75rem;
     }
 
-    .weekly-shift-card strong,
+    .weekly-shift-card strong {
+        font-size: 1rem;
+        line-height: 1.25;
+    }
+
     .weekly-shift-card small {
         font-size: 0.75rem;
     }
 
-    .weekly-shift-card .badge {
-        font-size: 0.68rem;
+    .weekly-shift-morning {
+        background-color: #fff3cd;
+    }
+
+    .weekly-shift-afternoon {
+        background-color: #cfe2ff;
     }
 
     @media (max-width: 1199.98px) {
@@ -120,7 +128,7 @@
                     <section class="weekly-turn" aria-label="{{ dia }} — {{ turno }}">
                         <h6 class="small fw-semibold mb-2">{{ turno }}</h6>
                         {% for item in lista_escalas %}
-                            <div class="bg-white mb-2 rounded shadow-sm border-start border-4 {% if turno == 'Manhã' %}border-warning{% else %}border-primary{% endif %} weekly-shift-card">
+                            <div class="mb-2 rounded shadow-sm border-start border-4 {% if turno == 'Manhã' %}weekly-shift-morning border-warning{% elif turno == 'Tarde' %}weekly-shift-afternoon border-primary{% else %}bg-white border-primary{% endif %} weekly-shift-card">
                                 <div class="weekly-shift-header">
                                     <strong class="text-dark small">{{ item.integrante.nome }}</strong>
                                     {% if user.is_superuser or user.is_authenticated and not portal_preview %}
@@ -140,15 +148,6 @@
                                         </div>
                                     {% endif %}
                                 </div>
-                                {% if item.turno == 'Manhã' %}
-                                    <span class="badge bg-warning text-dark me-1">{{ item.turno }}</span>
-                                {% elif item.turno == 'Tarde' %}
-                                    <span class="badge bg-primary me-1">{{ item.turno }}</span>
-                                {% elif item.turno == 'Noite' %}
-                                    <span class="badge bg-dark me-1">{{ item.turno }}</span>
-                                {% else %}
-                                    <span class="badge bg-success me-1">{{ item.turno }}</span>
-                                {% endif %}
                                 <small class="text-muted d-block mt-1">📍 {{ item.local.nome|default:"Local a definir" }}</small>
                                 {% if item.horario_inicio %}
                                     <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
@@ -375,3 +374,4 @@
 </script>
 {% endif %}
 {% endblock %}
+
