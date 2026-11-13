@@ -2,6 +2,18 @@
 {% block title %}{{ album.title }} · Galeria{% endblock %}
 {% block content %}
 {% if embedded %}<style>header {display:none} main {padding:0.5rem}</style>{% endif %}
+<style>
+  .album-view { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .75rem; margin-top: .5rem; }
+  .album-thumbnails { display: flex; flex-direction: column; gap: .5rem; max-height: 60vh; overflow-y: auto; padding: .25rem; }
+  .album-thumbnail { display: block; border: 2px solid transparent; border-radius: .5rem; flex: none; }
+  .album-thumbnail[aria-current="true"] { border-color: #481859; }
+  .album-thumbnail img { display: block; width: 100%; height: 3.25rem; object-fit: cover; border-radius: .3rem; }
+  .album-expanded img { display: block; max-width: 100%; max-height: 65vh; margin: auto; }
+  .album-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; }
+  .album-controls form:first-child { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; }
+  .album-controls label { margin: 0; }
+  .album-controls button { margin: 0; }
+</style>
 {% if not embedded %}
 <p><a href="{% url 'pilot:galeria' %}">Voltar à Galeria</a></p>
 <h1>{{ album.title }}</h1>
@@ -12,17 +24,30 @@
     Foto {{ page.number }} de {{ page.paginator.count }}
     {% if page.has_next %} · <a href="?foto={{ page.next_page_number }}{% if embedded %}&amp;interno=1{% endif %}">Próxima</a>{% endif %}
   </nav>
-  <p><a href="{{ photo }}"><img src="{{ photo }}" alt="Foto {{ page.number }} de {{ album.title }}"
-                               style="display:block; max-width:100%; max-height:75vh; margin:auto"></a></p>
+  <div class="album-view">
+    <nav class="album-thumbnails" aria-label="Miniaturas do álbum">
+      {% for thumbnail in thumbnails %}
+        <a class="album-thumbnail" href="?foto={{ forloop.counter }}{% if embedded %}&amp;interno=1{% endif %}"
+           {% if forloop.counter == page.number %}aria-current="true"{% endif %}>
+          <img src="{{ thumbnail }}" alt="Ampliar foto {{ forloop.counter }}" {% if not forloop.first %}loading="lazy"{% endif %}>
+        </a>
+      {% endfor %}
+    </nav>
+    <div class="album-expanded">
+      <a href="{{ photo }}"><img src="{{ photo }}" alt="Foto {{ page.number }} de {{ album.title }}"></a>
+    </div>
+  </div>
 {% else %}
   <p>As fotos deste álbum aguardam envio.</p>
 {% endif %}
 {% if user.is_authenticated %}
+  <div class="album-controls">
   <form method="post" enctype="multipart/form-data" action="{% url 'pilot:change_album' index %}">
     {% csrf_token %}
     {% if embedded %}<input type="hidden" name="interno" value="1">{% endif %}
-    <label for="album-upload">Nova foto</label>
-    <input id="album-upload" name="arquivo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+    <label for="album-upload">Nova foto
+      <input id="album-upload" name="arquivo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+    </label>
     <button type="submit">Adicionar foto</button>
   </form>
   {% if photo %}
@@ -34,5 +59,9 @@
     <button type="submit">Remover foto</button>
   </form>
   {% endif %}
+  </div>
 {% endif %}
+<script>
+  document.querySelector(".album-thumbnail[aria-current=true]")?.scrollIntoView({block: "nearest"});
+</script>
 {% endblock %}

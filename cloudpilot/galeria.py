@@ -95,6 +95,7 @@ def album(request, index):
         'index': index,
         'embedded': request.GET.get('interno') == '1',
         'page': page,
+        'thumbnails': [default_storage.url(item) for item in keys],
         'photo': default_storage.url(key) if key else None,
         'photo_id': photo_id(key) if key else '',
     })
