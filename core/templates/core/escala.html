@@ -15,7 +15,9 @@
     }
 
     #activities-calendar .fc-toolbar-title {
-        text-transform: uppercase;
+        font-family: inherit;
+        font-size: calc(1.3rem + 0.6vw);
+        font-weight: 700;
     }
 
     #calendar-event-description {
@@ -163,16 +165,15 @@
     </div>
 </div>
 
-<!-- Calendário de Atividades -->
-<div class="card card-custom p-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold text-primary m-0">📅 Calendário de Atividades</h5>
+<div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+        <h3 class="fw-bold text-dark mb-1">📅 Calendário de Atividades</h3>
         {% if user.is_authenticated and not calendario_erro %}
             <button type="button" class="btn btn-sm btn-outline-primary" id="open-calendar-note-modal">
                 + Adicionar nota
             </button>
         {% endif %}
     </div>
+<div class="card card-custom p-4">
     {% if calendario_erro %}
         <div class="alert alert-warning mb-0" role="alert">{{ calendario_erro }}</div>
     {% else %}
