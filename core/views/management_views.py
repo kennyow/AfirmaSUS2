@@ -90,7 +90,9 @@ def deletar_local(request, local_id):
 def pagina_escala(request):
     escalas = EscalaTrabalho.objects.select_related('integrante', 'local').all()
     dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira']
-    escalas_por_dia = {dia: escalas.filter(dia_semana=dia) for dia in dias}
+    turnos_por_dia = {dia: {'Manhã': [], 'Tarde': []} for dia in dias}
+    for escala in escalas.filter(dia_semana__in=dias):
+        turnos_por_dia[escala.dia_semana].setdefault(escala.turno, []).append(escala)
 
     calendario_eventos = []
     calendario_erro = None
@@ -110,7 +112,7 @@ def pagina_escala(request):
         calendario_erro = "Não foi possível carregar o calendário. Verifique o arquivo calendario_notas.json."
 
     context = {
-        'escalas_por_dia': escalas_por_dia,
+        'turnos_por_dia': turnos_por_dia,
         'calendario_eventos': calendario_eventos,
         'calendario_erro': calendario_erro,
     }

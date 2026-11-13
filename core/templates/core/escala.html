@@ -39,6 +39,12 @@
         white-space: nowrap;
     }
 
+    .weekly-turn + .weekly-turn {
+        border-top: 1px solid #ced4da;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+    }
+
     .weekly-shift-card {
         padding: 0.6rem !important;
         overflow-wrap: anywhere;
@@ -107,46 +113,51 @@
 <!-- Grade Semanal de Escalas -->
 <div class="card card-custom p-4 mb-4">
     <div class="weekly-schedule-grid">
-        {% for dia, lista_escalas in escalas_por_dia.items %}
+        {% for dia, turnos in turnos_por_dia.items %}
             <div class="border rounded bg-light h-100 weekly-day-card">
                 <h6 class="fw-bold text-secondary border-bottom pb-2 weekly-day-title">{{ dia }}</h6>
-                {% for item in lista_escalas %}
-                    <div class="bg-white mb-2 rounded shadow-sm border-start border-4 border-primary weekly-shift-card">
-                        <div class="weekly-shift-header">
-                            <strong class="text-dark small">{{ item.integrante.nome }}</strong>
-                            {% if user.is_superuser or user.is_authenticated and not portal_preview %}
-                                <div class="weekly-shift-actions">
-                                    <a href="{% url 'editar_escala' item.pk %}" class="btn btn-outline-primary weekly-shift-action"
-                                       data-pilot-edit title="Editar horário" aria-label="Editar horário">
-                                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
-                                    </a>
-                                    <form method="post" action="{% url 'deletar_escala' item.pk %}" data-pilot-edit
-                                          onsubmit="return confirm('Tem certeza que deseja excluir este horário da escala?');">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-outline-danger weekly-shift-action"
-                                                title="Excluir horário" aria-label="Excluir horário">
-                                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                                        </button>
-                                    </form>
+                {% for turno, lista_escalas in turnos.items %}
+                    <section class="weekly-turn" aria-label="{{ dia }} — {{ turno }}">
+                        <h6 class="small fw-semibold mb-2">{{ turno }}</h6>
+                        {% for item in lista_escalas %}
+                            <div class="bg-white mb-2 rounded shadow-sm border-start border-4 {% if turno == 'Manhã' %}border-warning{% else %}border-primary{% endif %} weekly-shift-card">
+                                <div class="weekly-shift-header">
+                                    <strong class="text-dark small">{{ item.integrante.nome }}</strong>
+                                    {% if user.is_superuser or user.is_authenticated and not portal_preview %}
+                                        <div class="weekly-shift-actions">
+                                            <a href="{% url 'editar_escala' item.pk %}" class="btn btn-outline-primary weekly-shift-action"
+                                               data-pilot-edit title="Editar horário" aria-label="Editar horário">
+                                                <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                                            </a>
+                                            <form method="post" action="{% url 'deletar_escala' item.pk %}" data-pilot-edit
+                                                  onsubmit="return confirm('Tem certeza que deseja excluir este horário da escala?');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger weekly-shift-action"
+                                                        title="Excluir horário" aria-label="Excluir horário">
+                                                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
                                 </div>
-                            {% endif %}
-                        </div>
-                        {% if item.turno == 'Manhã' %}
-                            <span class="badge bg-warning text-dark me-1">{{ item.turno }}</span>
-                        {% elif item.turno == 'Tarde' %}
-                            <span class="badge bg-primary me-1">{{ item.turno }}</span>
-                        {% elif item.turno == 'Noite' %}
-                            <span class="badge bg-dark me-1">{{ item.turno }}</span>
-                        {% else %}
-                            <span class="badge bg-success me-1">{{ item.turno }}</span>
-                        {% endif %}
-                        <small class="text-muted d-block mt-1">📍 {{ item.local.nome|default:"Local a definir" }}</small>
-                        {% if item.horario_inicio %}
-                            <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
-                        {% endif %}
-                    </div>
-                {% empty %}
-                    <span class="text-muted small italic">Sem escala.</span>
+                                {% if item.turno == 'Manhã' %}
+                                    <span class="badge bg-warning text-dark me-1">{{ item.turno }}</span>
+                                {% elif item.turno == 'Tarde' %}
+                                    <span class="badge bg-primary me-1">{{ item.turno }}</span>
+                                {% elif item.turno == 'Noite' %}
+                                    <span class="badge bg-dark me-1">{{ item.turno }}</span>
+                                {% else %}
+                                    <span class="badge bg-success me-1">{{ item.turno }}</span>
+                                {% endif %}
+                                <small class="text-muted d-block mt-1">📍 {{ item.local.nome|default:"Local a definir" }}</small>
+                                {% if item.horario_inicio %}
+                                    <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
+                                {% endif %}
+                            </div>
+                        {% empty %}
+                            <span class="text-muted small italic">Sem escala.</span>
+                        {% endfor %}
+                    </section>
                 {% endfor %}
             </div>
         {% endfor %}
