@@ -2,12 +2,19 @@
 
 import os
 import json
+import logging
+from pathlib import PurePosixPath
+from uuid import uuid4
 from datetime import date, time
 from django import forms
 from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.storage import default_storage
+from PIL import Image
+
+from cloudpilot.forms import IMAGE_FORMATS, MIME_TYPES, verify_image
 from .models import AtaReuniao, Local, Atividade, EscalaTrabalho, UsuarioAutorizado
 
 
@@ -15,6 +22,53 @@ from .models import AtaReuniao, Local, Atividade, EscalaTrabalho, UsuarioAutoriz
 # FORMULÁRIO DE LOCAIS DO MAPA
 # ==========================================
 class LocalForm(forms.ModelForm):
+    foto_upload = forms.FileField(
+        label='Enviar imagem',
+        required=False,
+        widget=forms.FileInput(attrs={'class': 'form-control', 'accept': ','.join(IMAGE_FORMATS)}),
+        help_text='JPG, PNG ou WebP de até 5 MB. A imagem enviada substitui o link e fica pública no mapa.',
+    )
+
+    def clean_foto_upload(self):
+        photo = self.cleaned_data['foto_upload']
+        if photo is None:
+            return None
+        extension = PurePosixPath(photo.name).suffix.lower()
+        if extension not in IMAGE_FORMATS or photo.size > 5 * 1024 * 1024:
+            raise ValidationError('Envie uma imagem JPG, PNG ou WebP de até 5 MB.')
+        try:
+            verify_image(photo, extension)
+        except (OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning) as error:
+            raise ValidationError('Imagem inválida ou danificada.') from error
+        finally:
+            photo.seek(0)
+        photo.content_type = MIME_TYPES[extension]
+        return photo
+
+    def save_with_photo(self):
+        photo = self.cleaned_data['foto_upload']
+        if photo is None:
+            self.save()
+            return True
+
+        key = None
+        try:
+            extension = PurePosixPath(photo.name).suffix.lower()
+            key = default_storage.save(f'locais/{uuid4().hex}{extension}', photo)
+            self.instance.foto = default_storage.url(key)
+            self.save()
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception('Falha ao salvar foto do local.')
+            if key:
+                try:
+                    default_storage.delete(key)
+                except Exception:
+                    logger.exception('Falha ao limpar a foto não vinculada.')
+            self.add_error('foto_upload', 'Não foi possível salvar a imagem. Selecione o arquivo e tente novamente.')
+            return False
+        return True
+
     CATEGORIAS_CHOICES = [
         ('Saúde', '🟢 Saúde (Verde / Hospital)'),
         ('Esporte e Lazer', '🟠 Esporte e Lazer (Laranja / Running)'),

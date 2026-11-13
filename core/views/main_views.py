@@ -242,8 +242,7 @@ def editar_local(request, local_id):
 
   if request.method == 'POST':
     form = LocalForm(request.POST, request.FILES, instance=local)
-    if form.is_valid():
-      form.save()  # Atualiza o Banco de Dados e o territorio_dados.json
+    if form.is_valid() and form.save_with_photo():
       return redirect('pagina_mapa')
   else:
     form = LocalForm(instance=local)
@@ -259,8 +258,7 @@ def editar_local(request, local_id):
 def cadastrar_local(request):
     if request.method == 'POST':
         form = LocalForm(request.POST, request.FILES)
-        if form.is_valid():
-            form.save()
+        if form.is_valid() and form.save_with_photo():
             return redirect('pagina_mapa')
     else:
         form = LocalForm()

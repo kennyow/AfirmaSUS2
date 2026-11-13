@@ -1,5 +1,6 @@
 import json
 from io import BytesIO
+from unittest.mock import patch
 from zipfile import ZipFile
 
 from django.contrib.auth.models import User
@@ -8,6 +9,7 @@ from django.urls import reverse
 
 from core.models import AtaReuniao, EscalaTrabalho, Integrante, Local, NotaCalendario
 from core.views.atas import _conteudo_vazio
+from .test_pilot import png
 
 
 class PortalPreviewTests(TestCase):
@@ -75,6 +77,22 @@ class PortalPreviewTests(TestCase):
         self.assertEqual(local.nome, 'Local revisado')
         self.client.force_login(self.member)
         self.assertEqual(self.client.post(edit, data).status_code, 403)
+
+    @patch('core.forms.default_storage')
+    def test_uploaded_photo_replaces_link_on_map(self, storage):
+        self.client.force_login(self.admin)
+        local = Local.objects.create(nome='Local de teste', lat=-7, lon=-34)
+        storage.url.return_value = 'https://media.example.test/locais/foto.png'
+        response = self.client.post(reverse('editar_local', args=[local.pk]), {
+            'nome': local.nome, 'categoria': 'Saúde', 'lat': '-7', 'lon': '-34',
+            'foto': 'https://example.test/anterior.jpg', 'foto_upload': png(),
+        })
+        self.assertRedirects(response, reverse('pagina_mapa'))
+        local.refresh_from_db()
+        self.assertEqual(local.foto, storage.url.return_value)
+        key, uploaded = storage.save.call_args.args
+        self.assertRegex(key, r'^locais/[0-9a-f]{32}\.png$')
+        self.assertEqual(uploaded.content_type, 'image/png')
 
     def test_admin_can_create_and_link_schedule_to_location(self):
         integrante = Integrante.objects.create(nome='Integrante de teste')

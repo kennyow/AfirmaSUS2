@@ -15,6 +15,18 @@ MIME_TYPES = {
 IMAGE_FORMATS = {'.jpg': 'JPEG', '.jpeg': 'JPEG', '.png': 'PNG', '.webp': 'WEBP'}
 
 
+def verify_image(arquivo, extension):
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', Image.DecompressionBombWarning)
+        with Image.open(arquivo) as image:
+            if image.format != IMAGE_FORMATS[extension]:
+                raise ValueError('Formato da imagem não corresponde à extensão.')
+            if image.width * image.height > 20_000_000:
+                raise ValueError('A imagem ultrapassa 20 milhões de pixels.')
+            if getattr(image, 'n_frames', 1) != 1:
+                raise ValueError('Envie uma imagem sem animação.')
+            image.verify()
+
 class UploadPublicoForm(forms.Form):
     titulo = forms.CharField(label='Título', max_length=200)
     arquivo = forms.FileField(
@@ -35,16 +47,7 @@ class UploadPublicoForm(forms.Form):
             raise forms.ValidationError('O arquivo está vazio ou ultrapassa o tamanho permitido.')
         try:
             if extension in IMAGE_FORMATS:
-                with warnings.catch_warnings():
-                    warnings.simplefilter('error', Image.DecompressionBombWarning)
-                    with Image.open(arquivo) as image:
-                        if image.format != IMAGE_FORMATS[extension]:
-                            raise ValueError('Formato da imagem não corresponde à extensão.')
-                        if image.width * image.height > 20_000_000:
-                            raise ValueError('A imagem ultrapassa 20 milhões de pixels.')
-                        if getattr(image, 'n_frames', 1) != 1:
-                            raise ValueError('Envie uma imagem sem animação.')
-                        image.verify()
+                verify_image(arquivo, extension)
             elif extension == '.pdf':
                 if not arquivo.read(5) == b'%PDF-':
                     raise ValueError('Cabeçalho PDF inválido.')

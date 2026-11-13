@@ -64,6 +64,13 @@
                             </div>
 
                             <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary" for="{{ form.foto_upload.id_for_label }}">{{ form.foto_upload.label }}</label>
+                                {{ form.foto_upload }}
+                                <div class="form-text">{{ form.foto_upload.help_text }}</div>
+                                {{ form.foto_upload.errors }}
+                            </div>
+
+                            <div class="col-12">
                                 <label class="form-label fw-bold small text-secondary">Descrição</label>
                                 {{ form.descricao }}
                                 {{ form.descricao.errors }}
