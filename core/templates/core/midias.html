@@ -21,6 +21,27 @@
         object-fit: contain;
     }
 
+    .formation-track {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 0.75rem;
+    }
+
+    .formation-slide {
+        flex: 0 0 calc((100% - 2rem) / 3);
+        min-width: 0;
+        scroll-snap-align: start;
+    }
+
+    @media (max-width: 991.98px) {
+        .formation-slide { flex-basis: calc((100% - 1rem) / 2); }
+    }
+
+    @media (max-width: 575.98px) {
+        .formation-slide { flex-basis: 100%; }
+    }
 </style>
 {% endblock %}
 
@@ -36,14 +57,19 @@
     <!-- 1. SEÇÃO FORMAÇÕES -->
     <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="fw-bold text-primary m-0">📚 Formações</h4>
+            {% if formacoes|length > 1 %}
+                <div class="d-flex gap-2 ms-auto">
+                    <button type="button" class="btn btn-outline-primary" id="formation-prev" aria-controls="formation-track" aria-label="Voltar" disabled>←</button>
+                    <button type="button" class="btn btn-outline-primary" id="formation-next" aria-controls="formation-track" aria-label="Avançar">→</button>
+                </div>
+            {% endif %}
             {% if user.is_authenticated %}
                 <button class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalFormacao">+ Adicionar Formação</button>
             {% endif %}
         </div>
-        <div class="row">
+        <div class="formation-track" id="formation-track" tabindex="0" role="region" aria-label="Carrossel de formações">
             {% for item in formacoes %}
-            <div class="col-md-6 col-lg-4 mb-4">
+            <div class="formation-slide">
                 <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
                     <div class="img-container-vertical">
                         {% if item.foto_url %}
@@ -102,3 +128,30 @@
 </div>
 
 {% endblock %}
+
+{% block extra_js %}
+<script>
+    const track = document.getElementById('formation-track');
+    const previous = document.getElementById('formation-prev');
+    const next = document.getElementById('formation-next');
+
+    if (previous && next) {
+        const updateButtons = () => {
+            previous.disabled = track.scrollLeft <= 1;
+            next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+        };
+        const move = (direction) => {
+            const [first, second] = track.querySelectorAll('.formation-slide');
+            const distance = second.offsetLeft - first.offsetLeft;
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            track.scrollBy({left: direction * distance, behavior: reducedMotion ? 'instant' : 'smooth'});
+        };
+        previous.addEventListener('click', () => move(-1));
+        next.addEventListener('click', () => move(1));
+        track.addEventListener('scroll', updateButtons, {passive: true});
+        window.addEventListener('resize', updateButtons);
+        updateButtons();
+    }
+</script>
+{% endblock %}
+
