@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 from django.views.decorators.http import require_POST
 
 from cloudpilot.forms import UploadPublicoForm
+from cloudpilot.galeria import album_cards
 from cloudpilot.materiais import materiais
 from core.models import FormacaoPublicada
 import os
@@ -171,6 +172,7 @@ def midias(request):
     linha_tempo_dinamica = ler_linha_tempo_dinamica()
     return render(request, 'core/linha_tempo_midias.html', {
         'apresentacoes': apresentacoes,
+        'gallery_albums': album_cards() if getattr(settings, 'PORTAL_PREVIEW', False) else [],
         'videos': videos,
         'atividades_timeline': atividades,
         'eventos_timeline_dinamica': linha_tempo_dinamica['events'],

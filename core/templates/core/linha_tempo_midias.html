@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Mídias - AfirmaSUS-JP{% endblock %}
+{% block title %}Atividades - AfirmaSUS-JP{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -42,20 +42,63 @@
         height: 100%;
         border: 0;
     }
+    {% include 'core/carrossel_estilo.html' %}
+    .gallery-cover {
+        width: 100%;
+        height: clamp(11rem, 22vw, 18rem);
+        object-fit: contain;
+        background-color: #f4f6f9;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-4">
     <div class="mb-4">
-        <h3 class="fw-bold text-dark mb-1">🖼️ Mídias</h3>
+        <h3 class="fw-bold text-dark mb-1">🖼️ Atividades</h3>
         <p class="text-muted m-0">Gerencie as atividades exibidas na Linha do Tempo da página de apresentação.</p>
     </div>
 
-    {% if portal_preview %}<section class="mb-4"><h4>Galeria</h4><a href="{% url 'pilot:galeria' %}">Ver fotos do projeto</a></section>{% endif %}
+    {% if portal_preview %}
+    <section class="mb-5" aria-labelledby="gallery-heading">
+        <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <h4 id="gallery-heading" class="fw-bold text-dark m-0">🖼️ Galeria</h4>
+            {% if gallery_albums|length > 1 %}
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary formation-nav" id="formation-prev"
+                            aria-controls="formation-track" aria-label="Voltar" disabled>
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-primary formation-nav" id="formation-next"
+                            aria-controls="formation-track" aria-label="Avançar">
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+        <div class="formation-track" id="formation-track" tabindex="0" role="region" aria-labelledby="gallery-heading">
+            {% for album in gallery_albums %}
+                <article class="formation-slide">
+                    <a class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden text-decoration-none"
+                       href="{% url 'pilot:album' album.index %}" target="_blank" rel="noopener">
+                        {% if album.cover %}
+                            <img class="gallery-cover" src="{{ album.cover }}" alt="" loading="lazy">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-dark">{{ album.title }}</h5>
+                            <span class="text-muted small">{{ album.available }} fotos</span>
+                        </div>
+                    </a>
+                </article>
+            {% empty %}
+                <p class="text-muted">Nenhum álbum disponível.</p>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
     <section class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3 gap-3">
-            <h4 class="fw-bold text-primary m-0">🗓️ Linha do Tempo de Atividades</h4>
+            <h4 class="fw-bold text-black m-0">🗓️ Linha do Tempo de Atividades</h4>
             {% if user.is_authenticated and atividades_timeline %}
             <button class="btn btn-outline-danger btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#modalRemoverAtividade">
                 Gerenciar remoções
@@ -370,6 +413,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if portal_preview %}{% include 'core/carrossel_script.html' %}{% endif %}
 <script>
     document.getElementById('selecionarAtividade')?.addEventListener('change', function () {
         document.getElementById('formRemoverAtividade').action = this.value;

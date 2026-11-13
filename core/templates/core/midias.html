@@ -21,14 +21,7 @@
         object-fit: contain;
     }
 
-    .formation-nav {
-        display: inline-grid;
-        place-items: center;
-        width: 42px;
-        height: 42px;
-        padding: 0;
-        border-radius: 50%;
-    }
+    {% include 'core/carrossel_estilo.html' %}
 
     .formation-action {
         display: inline-grid;
@@ -40,27 +33,6 @@
         background-color: white;
     }
 
-    .formation-track {
-        display: flex;
-        gap: 1rem;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        padding-bottom: 0.75rem;
-    }
-
-    .formation-slide {
-        flex: 0 0 calc((100% - 2rem) / 3);
-        min-width: 0;
-        scroll-snap-align: start;
-    }
-
-    @media (max-width: 991.98px) {
-        .formation-slide { flex-basis: calc((100% - 1rem) / 2); }
-    }
-
-    @media (max-width: 575.98px) {
-        .formation-slide { flex-basis: 100%; }
-    }
 </style>
 {% endblock %}
 
@@ -233,28 +205,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    const track = document.getElementById('formation-track');
-    const previous = document.getElementById('formation-prev');
-    const next = document.getElementById('formation-next');
-
-    if (previous && next) {
-        const updateButtons = () => {
-            previous.disabled = track.scrollLeft <= 1;
-            next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
-        };
-        const move = (direction) => {
-            const [first, second] = track.querySelectorAll('.formation-slide');
-            const distance = second.offsetLeft - first.offsetLeft;
-            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            track.scrollBy({left: direction * distance, behavior: reducedMotion ? 'instant' : 'smooth'});
-        };
-        previous.addEventListener('click', () => move(-1));
-        next.addEventListener('click', () => move(1));
-        track.addEventListener('scroll', updateButtons, {passive: true});
-        window.addEventListener('resize', updateButtons);
-        updateButtons();
-    }
-</script>
+{% include 'core/carrossel_script.html' %}
 {% endblock %}
-

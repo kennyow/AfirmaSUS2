@@ -37,8 +37,7 @@ def album_photos(album, uploaded):
     ]
 
 
-@require_safe
-def galeria(request):
+def album_cards():
     uploaded = available_uploads()
     cards = []
     for index, album in enumerate(albums(), start=1):
@@ -50,7 +49,12 @@ def galeria(request):
             'available': len(photos),
             'total': len(album['keys']),
         })
-    return render(request, 'cloudpilot/galeria.html', {'albums': cards})
+    return cards
+
+
+@require_safe
+def galeria(request):
+    return render(request, 'cloudpilot/galeria.html', {'albums': album_cards()})
 
 
 @require_safe
@@ -66,4 +70,3 @@ def album(request, index):
         'page': page,
         'photo': page.object_list[0] if photos else None,
     })
-
