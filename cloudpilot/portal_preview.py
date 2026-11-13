@@ -20,7 +20,7 @@ EDITABLE_PAGES = frozenset({
     'cadastrar_escala', 'editar_escala', 'cadastrar_local', 'editar_local',
     'nova_ata', 'editar_ata', 'deletar_local',
 })
-POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas', 'concluir_acao_ata', 'deletar_escala', 'publicar_formacao'})
+POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas', 'concluir_acao_ata', 'deletar_escala'})
 
 
 class PortalPreviewMiddleware(MiddlewareMixin):
@@ -31,6 +31,10 @@ class PortalPreviewMiddleware(MiddlewareMixin):
             return None
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
+        if request.method == 'POST' and request.resolver_match.url_name in {
+            'publicar_formacao', 'editar_formacao', 'excluir_formacao',
+        }:
+            return None
         if not request.user.is_superuser:
             return HttpResponse('Esta prévia está disponível apenas ao administrador.', status=403)
         if request.resolver_match.url_name in EDITABLE_PAGES and request.method in ('GET', 'HEAD', 'POST'):

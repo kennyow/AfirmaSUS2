@@ -15,7 +15,7 @@ from datetime import date
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from .utils import converter_link_drive, ordenar_atividades_timeline
 
 # Caminhos para os arquivos JSON na raiz do projeto
@@ -67,17 +67,19 @@ def formacoes(request):
         formacoes.append(item_copy)
 
     if getattr(settings, 'PORTAL_PREVIEW', False):
-        formacoes.extend(FormacaoPublicada.objects.order_by('pk').values('titulo', 'descricao', 'foto'))
+        formacoes = list(FormacaoPublicada.objects.order_by('-pk').values('id', 'titulo', 'descricao', 'foto'))
         for item in formacoes:
-            if 'foto_url' not in item:
-                item['foto_url'] = converter_link_drive(item['foto'])
+            item['foto_url'] = converter_link_drive(item['foto'])
+            if -len(formacoes_raw) <= item['id'] < 0:
+                item['link'] = formacoes_raw[-item['id'] - 1].get('link')
 
     return render(request, 'core/midias.html', {'formacoes': formacoes})
 
 
 @login_required
 @require_POST
-def publicar_formacao(request):
+def publicar_formacao(request, pk=None):
+    formacao = get_object_or_404(FormacaoPublicada, pk=pk) if pk is not None else FormacaoPublicada()
     titulo = request.POST.get('titulo', '').strip()
     key = None
     if not titulo or len(titulo) > 200:
@@ -103,11 +105,10 @@ def publicar_formacao(request):
             extension = PurePosixPath(image.name).suffix.lower()
             key = default_storage.save(f'formacoes/{uuid4().hex}{extension}', image)
             foto = default_storage.url(key)
-        FormacaoPublicada.objects.create(
-            titulo=titulo,
-            descricao=request.POST.get('descricao', '').strip(),
-            foto=foto,
-        )
+        formacao.titulo = titulo
+        formacao.descricao = request.POST.get('descricao', '').strip()
+        formacao.foto = foto
+        formacao.save(force_update=pk is not None)
     except Exception:
         logger = logging.getLogger(__name__)
         logger.exception('Falha ao publicar formação.')
@@ -119,6 +120,14 @@ def publicar_formacao(request):
         messages.error(request, 'Não foi possível publicar a formação. Tente novamente.')
     else:
         messages.success(request, 'Formação publicada.')
+    return redirect('formacoes')
+
+
+@login_required
+@require_POST
+def excluir_formacao(request, pk):
+    get_object_or_404(FormacaoPublicada, pk=pk).delete()
+    messages.success(request, 'Formação excluída.')
     return redirect('formacoes')
 
 

@@ -30,6 +30,16 @@
         border-radius: 50%;
     }
 
+    .formation-action {
+        display: inline-grid;
+        place-items: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        padding: 0;
+        font-size: 0.75rem;
+        background-color: white;
+    }
+
     .formation-track {
         display: flex;
         gap: 1rem;
@@ -72,7 +82,7 @@
                     <button type="button" class="btn btn-outline-primary formation-nav" id="formation-next" aria-controls="formation-track" aria-label="Avançar"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                 </div>
             {% endif %}
-            {% if user.is_superuser or user.is_authenticated and not portal_preview %}
+            {% if user.is_authenticated %}
                 <button class="btn btn-primary btn-sm fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalFormacao">+ Adicionar Formação</button>
             {% endif %}
         </div>
@@ -80,6 +90,21 @@
             {% for item in formacoes %}
             <div class="formation-slide">
                 <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                    {% if user.is_authenticated and portal_preview %}
+                        <div class="d-flex gap-1 position-absolute top-0 end-0 m-2 z-1">
+                            <button type="button" class="btn btn-outline-primary formation-action" data-bs-toggle="modal"
+                                    data-bs-target="#formation-edit-{{ item.id }}" aria-label="Editar formação" title="Editar formação">
+                                <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                            </button>
+                            <form method="post" action="{% url 'excluir_formacao' item.id %}" data-pilot-edit
+                                  onsubmit="return confirm('Excluir esta formação?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger formation-action" aria-label="Excluir formação" title="Excluir formação">
+                                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
                     <div class="img-container-vertical">
                         {% if item.foto_url %}
                             <img src="{{ item.foto_url }}" class="img-vertical" alt="{{ item.titulo }}">
@@ -119,6 +144,37 @@
 
 </div>
 
+{% if user.is_authenticated and portal_preview %}
+    {% for item in formacoes %}
+        <div class="modal fade" id="formation-edit-{{ item.id }}" tabindex="-1" aria-labelledby="formation-edit-title-{{ item.id }}">
+            <div class="modal-dialog">
+                <form class="modal-content" method="post" enctype="multipart/form-data" action="{% url 'editar_formacao' item.id %}" data-pilot-edit>
+                    {% csrf_token %}
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="formation-edit-title-{{ item.id }}">Editar formação</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Título
+                            <input class="form-control" name="titulo" maxlength="200" value="{{ item.titulo }}" required>
+                        </label>
+                        <label class="form-label w-100">Descrição
+                            <textarea class="form-control" name="descricao">{{ item.descricao }}</textarea>
+                        </label>
+                        <label class="form-label w-100">Link da imagem
+                            <input class="form-control" type="url" name="foto" value="{{ item.foto }}">
+                        </label>
+                        <label class="form-label w-100">Substituir imagem
+                            <input class="form-control" type="file" name="arquivo" accept=".jpg,.jpeg,.png,.webp">
+                        </label>
+                    </div>
+                    <div class="modal-footer"><button type="submit" class="btn btn-success">Salvar alterações</button></div>
+                </form>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}
+{% if user.is_authenticated %}
 <!-- Modal Adicionar Formação -->
 <div class="modal fade" id="modalFormacao" tabindex="-1">
   <div class="modal-dialog">
@@ -141,6 +197,7 @@
   </div>
 </div>
 
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

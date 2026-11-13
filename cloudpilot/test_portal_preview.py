@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from core.models import AtaReuniao, EscalaTrabalho, Integrante, Local, NotaCalendario
+from core.models import AtaReuniao, EscalaTrabalho, FormacaoPublicada, Integrante, Local, NotaCalendario
 from core.views.atas import _conteudo_vazio
 from .test_pilot import png
 
@@ -61,6 +61,25 @@ class PortalPreviewTests(TestCase):
         shift.delete()
         self.assertRedirects(self.client.post(delete), reverse('pagina_mapa'))
         self.assertFalse(Local.objects.filter(pk=local.pk).exists())
+
+    def test_formations_are_newest_first_and_changes_require_login(self):
+        older = FormacaoPublicada.objects.create(pk=-1, titulo='Anterior')
+        newer = FormacaoPublicada.objects.create(titulo='Recente')
+        response = self.client.get(reverse('formacoes'))
+        self.assertEqual([item['id'] for item in response.context['formacoes']], [newer.pk, older.pk])
+        self.assertNotContains(response, 'Excluir formação')
+        edit = reverse('editar_formacao', args=[older.pk])
+        delete = reverse('excluir_formacao', args=[older.pk])
+        self.assertEqual(self.client.post(edit, {'titulo': 'Alteração'}).status_code, 302)
+        older.refresh_from_db()
+        self.assertEqual(older.titulo, 'Anterior')
+        self.client.force_login(self.member)
+        self.assertRedirects(self.client.post(edit, {'titulo': 'Alterada'}), reverse('formacoes'))
+        older.refresh_from_db()
+        self.assertEqual(older.titulo, 'Alterada')
+        self.assertEqual(self.client.get(delete).status_code, 403)
+        self.assertRedirects(self.client.post(delete), reverse('formacoes'))
+        self.assertFalse(FormacaoPublicada.objects.filter(pk=older.pk).exists())
 
     def test_original_registration_is_not_exposed(self):
         self.client.force_login(self.admin)
