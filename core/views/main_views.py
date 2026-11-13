@@ -276,7 +276,23 @@ def deletar_local(request, local_id):
     local = get_object_or_404(Local, pk=local_id)
     
     if request.method == 'POST':
-        local.delete()
+        if getattr(settings, 'PORTAL_PREVIEW', False):
+            from django.contrib import messages
+            from django.db import connection
+
+            # Keep the dependency check and the deletion in one D1 statement.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    'DELETE FROM core_local WHERE id = %s '
+                    'AND NOT EXISTS (SELECT 1 FROM core_atividade WHERE local_id = %s) '
+                    'AND NOT EXISTS (SELECT 1 FROM core_escalatrabalho WHERE local_id = %s)',
+                    [local.pk, local.pk, local.pk],
+                )
+            if Local.objects.filter(pk=local.pk).exists():
+                messages.error(request, 'Desvincule as atividades e escalas deste local antes de excluí-lo.')
+                return redirect('editar_local', local_id=local.pk)
+        else:
+            local.delete()
         return redirect('pagina_mapa')
         
     contexto = {

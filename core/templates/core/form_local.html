@@ -73,8 +73,7 @@
                         <div class="d-flex justify-content-between align-items-center mt-4 pt-2 border-top">
                             {% if form.instance.pk %}
                                 <a href="{% url 'deletar_local' form.instance.pk %}" 
-                                   class="btn btn-outline-danger btn-sm rounded-3"
-                                   onclick="return confirm('Tem certeza que deseja excluir este local?');">
+                                   class="btn btn-outline-danger btn-sm rounded-3" data-pilot-edit>
                                     🗑️ Excluir Local
                                 </a>
                             {% else %}

@@ -18,7 +18,7 @@ PUBLIC_PAGES = frozenset({
 READ_ONLY_PAGES = PUBLIC_PAGES | {'atas', 'fila_atas', 'lembretes_atas'}
 EDITABLE_PAGES = frozenset({
     'cadastrar_escala', 'editar_escala', 'cadastrar_local', 'editar_local',
-    'nova_ata', 'editar_ata',
+    'nova_ata', 'editar_ata', 'deletar_local',
 })
 POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas', 'concluir_acao_ata'})
 

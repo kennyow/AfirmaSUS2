@@ -42,11 +42,23 @@ class PortalPreviewTests(TestCase):
 
     def test_post_and_legacy_get_deletion_are_blocked(self):
         self.client.force_login(self.admin)
-        local = Local.objects.create(nome='Local de teste', lat=-7, lon=-34)
-        self.assertEqual(self.client.get(reverse('deletar_local', args=[local.pk])).status_code, 405)
-        self.assertTrue(Local.objects.filter(pk=local.pk).exists())
         self.assertEqual(self.client.post(reverse('adicionar_midia', args=['formacao']), {'titulo': 'Não publicar'}).status_code, 405)
         self.assertEqual(self.client.post(reverse('home')).status_code, 405)
+
+    def test_admin_can_confirm_and_delete_only_unlinked_locations(self):
+        local = Local.objects.create(nome='Local de teste', lat=-7, lon=-34)
+        delete = reverse('deletar_local', args=[local.pk])
+        self.client.force_login(self.member)
+        self.assertEqual(self.client.post(delete).status_code, 403)
+        self.client.force_login(self.admin)
+        self.assertContains(self.client.get(delete), 'Sim, excluir')
+        self.assertTrue(Local.objects.filter(pk=local.pk).exists())
+        shift = EscalaTrabalho.objects.create(local=local)
+        self.assertRedirects(self.client.post(delete), reverse('editar_local', args=[local.pk]))
+        self.assertTrue(EscalaTrabalho.objects.filter(pk=shift.pk, local=local).exists())
+        shift.delete()
+        self.assertRedirects(self.client.post(delete), reverse('pagina_mapa'))
+        self.assertFalse(Local.objects.filter(pk=local.pk).exists())
 
     def test_original_registration_is_not_exposed(self):
         self.client.force_login(self.admin)
