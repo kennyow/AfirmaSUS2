@@ -24,7 +24,7 @@
 
     .weekly-schedule-grid {
         display: grid;
-        grid-template-columns: repeat(7, minmax(0, 1fr));
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 0.75rem;
         align-items: stretch;
     }
@@ -44,6 +44,32 @@
         overflow-wrap: anywhere;
     }
 
+    .weekly-shift-header,
+    .weekly-shift-actions {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.3rem;
+    }
+
+    .weekly-shift-header {
+        justify-content: space-between;
+        margin-bottom: 0.3rem;
+    }
+
+    .weekly-shift-actions {
+        margin-left: auto;
+        flex: none;
+    }
+
+    .weekly-shift-action {
+        display: inline-grid;
+        place-items: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        padding: 0;
+        font-size: 0.75rem;
+    }
+
     .weekly-shift-card strong,
     .weekly-shift-card small {
         font-size: 0.75rem;
@@ -55,7 +81,7 @@
 
     @media (max-width: 1199.98px) {
         .weekly-schedule-grid {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
     }
 
@@ -80,14 +106,31 @@
 
 <!-- Grade Semanal de Escalas -->
 <div class="card card-custom p-4 mb-4">
-    <h5 class="fw-bold text-primary mb-3">🗓️ Grade Semanal de Atuação</h5>
     <div class="weekly-schedule-grid">
         {% for dia, lista_escalas in escalas_por_dia.items %}
             <div class="border rounded bg-light h-100 weekly-day-card">
                 <h6 class="fw-bold text-secondary border-bottom pb-2 weekly-day-title">{{ dia }}</h6>
                 {% for item in lista_escalas %}
                     <div class="bg-white mb-2 rounded shadow-sm border-start border-4 border-primary weekly-shift-card">
-                        <strong class="d-block text-dark small">{{ item.integrante.nome }}</strong>
+                        <div class="weekly-shift-header">
+                            <strong class="text-dark small">{{ item.integrante.nome }}</strong>
+                            {% if user.is_superuser or user.is_authenticated and not portal_preview %}
+                                <div class="weekly-shift-actions">
+                                    <a href="{% url 'editar_escala' item.pk %}" class="btn btn-outline-primary weekly-shift-action"
+                                       data-pilot-edit title="Editar horário" aria-label="Editar horário">
+                                        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'deletar_escala' item.pk %}" data-pilot-edit
+                                          onsubmit="return confirm('Tem certeza que deseja excluir este horário da escala?');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger weekly-shift-action"
+                                                title="Excluir horário" aria-label="Excluir horário">
+                                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
                         {% if item.turno == 'Manhã' %}
                             <span class="badge bg-warning text-dark me-1">{{ item.turno }}</span>
                         {% elif item.turno == 'Tarde' %}
@@ -100,15 +143,6 @@
                         <small class="text-muted d-block mt-1">📍 {{ item.local.nome|default:"Local a definir" }}</small>
                         {% if item.horario_inicio %}
                             <small class="text-secondary font-monospace">{{ item.horario_inicio|time:"H:i" }} - {{ item.horario_fim|time:"H:i" }}</small>
-                        {% endif %}
-                        {% if user.is_authenticated %}
-                            <a href="{% url 'editar_escala' item.pk %}" class="btn btn-outline-primary btn-sm mt-2" data-pilot-edit>Editar horário</a>
-                            <form method="POST" action="{% url 'deletar_escala' item.pk %}" class="mt-2">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir este horário da escala?');">
-                                    Excluir horário
-                                </button>
-                            </form>
                         {% endif %}
                     </div>
                 {% empty %}

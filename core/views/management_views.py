@@ -89,7 +89,7 @@ def deletar_local(request, local_id):
 
 def pagina_escala(request):
     escalas = EscalaTrabalho.objects.select_related('integrante', 'local').all()
-    dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo']
+    dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira']
     escalas_por_dia = {dia: escalas.filter(dia_semana=dia) for dia in dias}
 
     calendario_eventos = []

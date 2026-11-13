@@ -20,7 +20,7 @@ EDITABLE_PAGES = frozenset({
     'cadastrar_escala', 'editar_escala', 'cadastrar_local', 'editar_local',
     'nova_ata', 'editar_ata', 'deletar_local',
 })
-POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas', 'concluir_acao_ata'})
+POST_ONLY_PAGES = frozenset({'alterar_fila_ata', 'exportar_atas', 'concluir_acao_ata', 'deletar_escala'})
 
 
 class PortalPreviewMiddleware(MiddlewareMixin):
