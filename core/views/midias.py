@@ -1,4 +1,14 @@
 import json
+import logging
+from pathlib import PurePosixPath
+from uuid import uuid4
+
+from django import forms
+from django.core.files.storage import default_storage
+from django.views.decorators.http import require_POST
+
+from cloudpilot.forms import UploadPublicoForm
+from core.models import FormacaoPublicada
 import os
 import re
 from datetime import date
@@ -56,7 +66,60 @@ def formacoes(request):
         item_copy['foto_url'] = converter_link_drive(raw_foto)
         formacoes.append(item_copy)
 
+    if getattr(settings, 'PORTAL_PREVIEW', False):
+        formacoes.extend(FormacaoPublicada.objects.order_by('pk').values('titulo', 'descricao', 'foto'))
+        for item in formacoes:
+            if 'foto_url' not in item:
+                item['foto_url'] = converter_link_drive(item['foto'])
+
     return render(request, 'core/midias.html', {'formacoes': formacoes})
+
+
+@login_required
+@require_POST
+def publicar_formacao(request):
+    titulo = request.POST.get('titulo', '').strip()
+    key = None
+    if not titulo or len(titulo) > 200:
+        messages.error(request, 'Informe um título de até 200 caracteres.')
+        return redirect('formacoes')
+    image = None
+    if request.FILES:
+        form = UploadPublicoForm({'titulo': titulo}, request.FILES)
+        if not form.is_valid() or not form.cleaned_data['arquivo'].content_type.startswith('image/'):
+            messages.error(request, 'Envie uma imagem JPG, PNG ou WebP de até 5 MB.')
+            return redirect('formacoes')
+        image = form.cleaned_data['arquivo']
+        foto = ''
+    else:
+        try:
+            foto = forms.URLField(max_length=500, required=False).clean(request.POST.get('foto', ''))
+        except forms.ValidationError:
+            messages.error(request, 'Informe um link de imagem válido.')
+            return redirect('formacoes')
+
+    try:
+        if image is not None:
+            extension = PurePosixPath(image.name).suffix.lower()
+            key = default_storage.save(f'formacoes/{uuid4().hex}{extension}', image)
+            foto = default_storage.url(key)
+        FormacaoPublicada.objects.create(
+            titulo=titulo,
+            descricao=request.POST.get('descricao', '').strip(),
+            foto=foto,
+        )
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.exception('Falha ao publicar formação.')
+        if key:
+            try:
+                default_storage.delete(key)
+            except Exception:
+                logger.exception('Falha ao limpar a imagem sem formação.')
+        messages.error(request, 'Não foi possível publicar a formação. Tente novamente.')
+    else:
+        messages.success(request, 'Formação publicada.')
+    return redirect('formacoes')
 
 
 def midias(request):

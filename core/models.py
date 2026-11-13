@@ -202,3 +202,9 @@ class AtaReuniao(models.Model):
 
     def __str__(self):
         return self.titulo.strip() or "Ata sem título"
+
+
+class FormacaoPublicada(models.Model):
+    titulo = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True)
+    foto = models.CharField(max_length=500)
