@@ -226,6 +226,13 @@
                     <input type="date" class="form-control mb-3" id="calendar-note-date" name="date" required>
                     <label for="calendar-note-title" class="form-label">Título</label>
                     <input type="text" class="form-control mb-3" id="calendar-note-title" name="title" maxlength="200" required>
+                    <label for="calendar-note-category" class="form-label">Categoria</label>
+                    <select class="form-select mb-3" id="calendar-note-category" name="category" required>
+                        <option value="">Selecione uma categoria</option>
+                        {% for categoria in categorias_notas %}
+                            <option value="{{ categoria }}">{{ categoria }}</option>
+                        {% endfor %}
+                    </select>
                     <label for="calendar-note-description" class="form-label">Descrição</label>
                     <textarea class="form-control" id="calendar-note-description" name="description" rows="4"></textarea>
                 </div>
@@ -299,6 +306,7 @@
                 }
                 dateInput.value = info.startStr;
                 document.getElementById('calendar-note-title').value = '';
+                document.getElementById('calendar-note-category').value = '';
                 document.getElementById('calendar-note-description').value = '';
                 bootstrap.Modal.getOrCreateInstance(
                     document.getElementById('add-calendar-note-modal')
@@ -342,6 +350,7 @@
                 today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
                 document.getElementById('calendar-note-date').value = today.toISOString().slice(0, 10);
                 document.getElementById('calendar-note-title').value = '';
+                document.getElementById('calendar-note-category').value = '';
                 document.getElementById('calendar-note-description').value = '';
                 bootstrap.Modal.getOrCreateInstance(
                     document.getElementById('add-calendar-note-modal')
@@ -375,4 +384,3 @@
 </script>
 {% endif %}
 {% endblock %}
-

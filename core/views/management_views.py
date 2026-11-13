@@ -87,6 +87,13 @@ def deletar_local(request, local_id):
     messages.warning(request, "Local removido com sucesso do mapa.")
     return redirect('pagina_mapa')
 
+CALENDAR_NOTE_CATEGORIES = {
+    'Reunião': ('#9B1C84', '#FFFFFF'),
+    'Eventos': ('#F7881A', '#212529'),
+    'Outras Atividades': ('#F93260', '#000000'),
+}
+
+
 def pagina_escala(request):
     escalas = EscalaTrabalho.objects.select_related('integrante', 'local').all()
     dias = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira']
@@ -115,6 +122,7 @@ def pagina_escala(request):
         'turnos_por_dia': turnos_por_dia,
         'calendario_eventos': calendario_eventos,
         'calendario_erro': calendario_erro,
+        'categorias_notas': CALENDAR_NOTE_CATEGORIES,
     }
     return render(request, 'core/escala.html', context)
 
@@ -159,6 +167,11 @@ def adicionar_nota_calendario(request):
         messages.error(request, "Informe um título para a nota com até 200 caracteres.")
         return redirect('pagina_escala')
 
+    categoria = request.POST.get('category', '')
+    if categoria and categoria not in CALENDAR_NOTE_CATEGORIES:
+        messages.error(request, "Selecione uma categoria válida para a nota.")
+        return redirect('pagina_escala')
+
     try:
         nota = {
             'id': f'nota-{uuid.uuid4()}',
@@ -166,6 +179,9 @@ def adicionar_nota_calendario(request):
             'start': data_nota,
             'description': descricao,
         }
+        if categoria:
+            cor, cor_texto = CALENDAR_NOTE_CATEGORIES[categoria]
+            nota.update(category=categoria, backgroundColor=cor, borderColor=cor, textColor=cor_texto)
         if getattr(settings, 'CALENDARIO_NO_BANCO', False):
             NotaCalendario.objects.create(pk=nota['id'], dados=nota)
         else:

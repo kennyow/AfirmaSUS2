@@ -172,13 +172,16 @@ class PortalPreviewTests(TestCase):
     @override_settings(CALENDARIO_NO_BANCO=True)
     def test_admin_can_add_and_edit_persistent_calendar_note(self):
         self.client.force_login(self.admin)
-        data = {'title': 'Reunião de teste', 'date': '2026-11-06', 'description': 'Descrição'}
+        data = {'title': 'Reunião de teste', 'date': '2026-11-06', 'description': 'Descrição', 'category': 'Reunião'}
         self.assertRedirects(self.client.post(reverse('adicionar_nota_calendario'), data), reverse('pagina_escala'))
         nota = NotaCalendario.objects.get()
         edit = reverse('editar_nota_calendario', args=[nota.pk])
         self.assertRedirects(self.client.post(edit, {**data, 'title': 'Reunião atualizada'}), reverse('pagina_escala'))
         response = self.client.get(reverse('pagina_escala'))
         self.assertEqual(response.context['calendario_eventos'][0]['title'], 'Reunião atualizada')
+        event = response.context['calendario_eventos'][0]
+        self.assertEqual(event['category'], 'Reunião')
+        self.assertEqual(event['backgroundColor'], '#9B1C84')
         self.assertEqual(NotaCalendario.objects.count(), 1)
         self.client.force_login(self.member)
         self.assertEqual(self.client.post(edit, data).status_code, 403)
