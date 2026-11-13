@@ -1,9 +1,11 @@
 {% extends 'cloudpilot/base.html' %}
 {% block title %}{{ album.title }} · Galeria{% endblock %}
 {% block content %}
-{% if embedded %}<style>header, main > p.notice:not([role]), main > p:first-of-type {display:none} main {padding:0.5rem}</style>{% endif %}
+{% if embedded %}<style>header {display:none} main {padding:0.5rem}</style>{% endif %}
+{% if not embedded %}
 <p><a href="{% url 'pilot:galeria' %}">Voltar à Galeria</a></p>
 <h1>{{ album.title }}</h1>
+{% endif %}
 {% if photo %}
   <nav aria-label="Navegação de fotos">
     {% if page.has_previous %}<a href="?foto={{ page.previous_page_number }}{% if embedded %}&amp;interno=1{% endif %}">Anterior</a> · {% endif %}

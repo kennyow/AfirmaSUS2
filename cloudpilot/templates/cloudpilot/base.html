@@ -29,8 +29,10 @@
   {% else %}<a href="{% url 'login' %}">Entrar para enviar</a>{% endif %}</div>
 </header>
 <main>
+  {% if not embedded %}
   <p class="notice">Os arquivos desta biblioteca são públicos.</p>
   <p><a href="{% url 'home' %}">Voltar à página inicial</a></p>
+  {% endif %}
   {% for message in messages %}<p role="status" class="notice">{{ message }}</p>{% endfor %}
   {% block content %}{% endblock %}
 </main>
