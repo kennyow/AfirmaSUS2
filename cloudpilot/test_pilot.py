@@ -116,6 +116,33 @@ class UploadFlowTests(TestCase):
         self.assertEqual(self.upload(file).status_code, 400)
         self.assertFalse(ArquivoPublico.objects.exists())
 
+    def test_work_materials_public_read_and_authenticated_mutations(self):
+        url = '/materiais/adicionar/'
+        pdf = b'%PDF-1.4\n%test\n%%EOF'
+        self.assertEqual(self.client.post(url).status_code, 302)
+        self.assertIn('/login/', self.client.post(url).url)
+        self.client.force_login(self.user)
+        response = self.client.post(url, {
+            'titulo': 'Documento de teste',
+            'arquivo': SimpleUploadedFile('teste.pdf', pdf),
+        })
+        self.assertEqual(response.status_code, 302)
+        from .materiais import materiais
+        [item] = materiais()
+        self.assertEqual(item['title'], 'Documento de teste')
+        path = f"/materiais/{item['key']}"
+        visitor = Client()
+        preview = visitor.get(f'{path}/visualizar/')
+        self.assertEqual(preview.status_code, 200)
+        self.assertEqual(b''.join(preview.streaming_content), pdf)
+        download = visitor.get(f'{path}/baixar/')
+        self.assertTrue(download['Content-Disposition'].startswith('attachment;'))
+        download.close()
+        self.assertIn('/login/', visitor.post(f'{path}/remover/').url)
+        self.assertEqual(self.client.get(f'{path}/remover/').status_code, 405)
+        self.assertEqual(self.client.post(f'{path}/remover/').status_code, 302)
+        self.assertEqual(materiais(), [])
+
     def test_pdf_upload_and_download(self):
         self.client.force_login(self.user)
         file = SimpleUploadedFile('ata.pdf', b'%PDF-1.4\n%test\n%%EOF', content_type='text/html')

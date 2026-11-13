@@ -8,6 +8,7 @@ from django.core.files.storage import default_storage
 from django.views.decorators.http import require_POST
 
 from cloudpilot.forms import UploadPublicoForm
+from cloudpilot.materiais import materiais
 from core.models import FormacaoPublicada
 import os
 import re
@@ -73,7 +74,10 @@ def formacoes(request):
             if -len(formacoes_raw) <= item['id'] < 0:
                 item['link'] = formacoes_raw[-item['id'] - 1].get('link')
 
-    return render(request, 'core/midias.html', {'formacoes': formacoes})
+    return render(request, 'core/midias.html', {
+        'formacoes': formacoes,
+        'materiais': materiais() if getattr(settings, 'PORTAL_PREVIEW', False) else [],
+    })
 
 
 @login_required
