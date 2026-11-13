@@ -43,7 +43,7 @@
         border: 0;
     }
     {% include 'core/carrossel_estilo.html' %}
-    .formation-nav {
+    .formation-nav, .album-primary {
         --bs-btn-color: #fff;
         --bs-btn-bg: #481859;
         --bs-btn-border-color: #481859;
@@ -77,7 +77,7 @@
     <section class="mb-5" aria-labelledby="gallery-heading">
         <div class="d-flex align-items-center justify-content-end gap-2 mb-3">
             {% if user.is_authenticated %}
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#add-album-modal">+ Adicionar Álbum</button>
+                <button type="button" class="btn album-primary" data-bs-toggle="modal" data-bs-target="#add-album-modal">+ Adicionar Álbum</button>
             {% endif %}
             {% if gallery_albums|length > 1 %}
                 <div class="d-flex gap-2">
@@ -150,16 +150,6 @@
                             <label for="timeline-descricao" class="form-label">Descrição</label>
                             <textarea id="timeline-descricao" name="descricao" class="form-control" rows="3"></textarea>
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Links das imagens</label>
-                            <div id="timeline-fotos">
-                                <div class="input-group mb-2 timeline-foto-item">
-                                    <input type="url" name="fotos" class="form-control" placeholder="https://...">
-                                    <button type="button" class="btn btn-outline-danger" data-remove-foto aria-label="Remover link da imagem">Remover</button>
-                                </div>
-                            </div>
-                            <button type="button" id="adicionar-foto-timeline" class="btn btn-outline-secondary btn-sm">+ Adicionar outra imagem</button>
-                        </div>
                     </div>
                     <div class="mt-3">
                         <label for="album-files" class="form-label">Enviar fotos</label>
@@ -170,7 +160,7 @@
                         <label class="form-check-label" for="album-timeline">Adicionar à Linha do Tempo de Atividades</label>
                     </div>
                 </div>
-                <div class="modal-footer"><button class="btn btn-primary" type="submit">Salvar álbum</button></div>
+                <div class="modal-footer"><button class="btn album-primary" type="submit">Salvar álbum</button></div>
             </form>
         </div>
     </div>
@@ -555,3 +545,4 @@
 
 </script>
 {% endblock %}
+
