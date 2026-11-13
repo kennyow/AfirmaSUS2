@@ -50,6 +50,9 @@ def home(request):
         with open(caminho_timeline_atividades, "r", encoding="utf-8") as f:
             atividades_raw = json.load(f)
 
+        if getattr(settings, 'PORTAL_PREVIEW', False):
+            from cloudpilot.galeria import timeline_albums
+            atividades_raw.extend(timeline_albums())
         atividades_raw = ordenar_atividades_timeline(atividades_raw)
         atividades_timeline = []
         for ev in atividades_raw:

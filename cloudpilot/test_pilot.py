@@ -116,6 +116,26 @@ class UploadFlowTests(TestCase):
         self.assertEqual(self.upload(file).status_code, 400)
         self.assertFalse(ArquivoPublico.objects.exists())
 
+    def test_album_publication_and_optional_timeline(self):
+        from .galeria import published_albums, timeline_albums
+
+        url = '/midias/galeria/adicionar/'
+        self.assertIn('/login/', self.client.post(url).url)
+        self.client.force_login(self.user)
+        self.client.post(url, {'titulo': 'Somente galeria'})
+        self.client.post(url, {
+            'titulo': 'Atividade pública', 'timeline': '1',
+            'data': '13/11/2026', 'categoria': 'Saúde', 'arquivos': png(),
+        })
+        entries = dict(published_albums())
+        self.assertEqual({item['title'] for item in entries.values()},
+                         {'Somente galeria', 'Atividade pública'})
+        [event] = timeline_albums()
+        self.assertEqual(event['titulo'], 'Atividade pública')
+        self.assertEqual(len(event['fotos']), 1)
+        index = next(key for key, item in entries.items() if item['timeline'])
+        self.assertContains(Client().get(f'/midias/galeria/{index}/'), 'Atividade pública')
+
     def test_work_materials_public_read_and_authenticated_mutations(self):
         url = '/materiais/adicionar/'
         pdf = b'%PDF-1.4\n%test\n%%EOF'

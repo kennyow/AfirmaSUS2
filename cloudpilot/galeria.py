@@ -4,6 +4,7 @@ from uuid import uuid4
 from functools import lru_cache
 from pathlib import Path
 
+from django import forms
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
@@ -49,11 +50,89 @@ def album_keys(index, entry, uploaded, has_changes=True):
         f'{prefix}/fotos/{name}' for name in sorted(files_at(f'{prefix}/fotos') if has_changes else [])
         if Path(name).suffix.lower() in IMAGE_FORMATS
     )
-    return [key for key in (*originals, *added) if photo_id(key) not in hidden]
+    return [key for key in (*entry.get('links', []), *originals, *added) if photo_id(key) not in hidden]
+
+
+def image_url(key):
+    return key if key.startswith(('https://', 'http://')) else default_storage.url(key)
 
 
 def photo_id(key):
     return hashlib.sha256(key.encode()).hexdigest()
+
+
+def published_albums():
+    for name in sorted(files_at('albuns-publicados'), reverse=True):
+        if name.isdecimal():
+            yield int(name), get_album(int(name))
+
+
+def timeline_albums():
+    entries = []
+    for index, entry in published_albums():
+        if entry['timeline']:
+            photos = album_keys(index, entry, {})
+            entries.append({**entry, 'titulo': entry['title'],
+                            'fotos': [image_url(key) for key in photos]})
+    return entries
+
+
+@login_required
+@require_POST
+def create_album(request):
+    title = request.POST.get('titulo', '').strip()
+    date = request.POST.get('data', '').strip()
+    category = request.POST.get('categoria', '').strip()
+    color = request.POST.get('cor_borda', '#17A2B8')
+    timeline = request.POST.get('timeline') == '1'
+    if not title or len(title) > 200 or (timeline and not (date and category)):
+        messages.error(request, 'Informe o título e, para a Linha do Tempo, a data e a categoria.')
+        return redirect('midias')
+    if len(color) != 7 or color[0] != '#' or any(c not in '0123456789abcdefABCDEF' for c in color[1:]):
+        messages.error(request, 'Escolha uma cor válida.')
+        return redirect('midias')
+
+    links = []
+    validate_url = forms.URLField(max_length=500)
+    try:
+        for value in request.POST.getlist('fotos'):
+            if value.strip():
+                link = validate_url.clean(value)
+                if not link.startswith(('https://', 'http://')):
+                    raise forms.ValidationError('Use um link HTTP ou HTTPS.')
+                links.append(link)
+    except forms.ValidationError:
+        messages.error(request, 'Informe links válidos para as fotos.')
+        return redirect('midias')
+
+    files = request.FILES.getlist('arquivos')
+    for file in files:
+        form = UploadPublicoForm({'titulo': title}, {'arquivo': file})
+        if Path(file.name).suffix.lower() not in IMAGE_FORMATS or not form.is_valid():
+            messages.error(request, 'Envie fotos JPG, PNG ou WebP de até 5 MB cada.')
+            return redirect('midias')
+
+    # Keep existing numeric album addresses and use a separate namespace for new ones.
+    index = uuid4().int
+    keys = []
+    try:
+        for position, file in enumerate(files):
+            extension = Path(file.name).suffix.lower()
+            keys.append(default_storage.save(f'albuns/{index}/fotos/{position:04d}-{uuid4().hex}{extension}', file))
+        entry = {'title': title, 'data': date, 'categoria': category, 'cor_borda': color,
+                 'descricao': request.POST.get('descricao', '').strip(), 'timeline': timeline,
+                 'keys': [], 'links': links}
+        default_storage.save(f'albuns-publicados/{index}', ContentFile(json.dumps(entry).encode()))
+    except Exception:
+        for key in keys:
+            try:
+                default_storage.delete(key)
+            except Exception:
+                pass
+        messages.error(request, 'Não foi possível salvar o álbum. Tente novamente.')
+    else:
+        messages.success(request, 'Álbum adicionado.')
+    return redirect('midias')
 
 
 def album_cards():
@@ -64,12 +143,13 @@ def album_cards():
         changed_albums = []
     changed_albums = {str(name).rstrip('/').rsplit('/', 1)[-1] for name in changed_albums}
     cards = []
-    for index, album in enumerate(albums(), start=1):
-        photos = album_keys(index, album, uploaded, str(index) in changed_albums)
+    catalog = [*published_albums(), *enumerate(albums(), start=1)]
+    for index, album in catalog:
+        photos = album_keys(index, album, uploaded, 'timeline' in album or str(index) in changed_albums)
         cards.append({
             'index': index,
             'title': album['title'],
-            'cover': default_storage.url(photos[0]) if photos else None,
+            'cover': image_url(photos[0]) if photos else None,
             'available': len(photos),
             'total': len(album['keys']),
         })
@@ -83,9 +163,13 @@ def galeria(request):
 
 def get_album(index):
     catalog = albums()
-    if not 1 <= index <= len(catalog):
-        raise Http404
-    return catalog[index - 1]
+    if 1 <= index <= len(catalog):
+        return catalog[index - 1]
+    try:
+        with default_storage.open(f'albuns-publicados/{index}', 'rb') as document:
+            return json.load(document)
+    except FileNotFoundError as error:
+        raise Http404 from error
 
 
 @xframe_options_sameorigin
@@ -100,8 +184,8 @@ def album(request, index):
         'index': index,
         'embedded': request.GET.get('interno') == '1',
         'page': page,
-        'thumbnails': [{'url': default_storage.url(item), 'id': photo_id(item)} for item in keys],
-        'photo': default_storage.url(key) if key else None,
+        'thumbnails': [{'url': image_url(item), 'id': photo_id(item)} for item in keys],
+        'photo': image_url(key) if key else None,
         'photo_id': photo_id(key) if key else '',
     })
 
