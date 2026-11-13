@@ -20,9 +20,10 @@
   .album-expanded a { display: block; width: 100%; height: 100%; min-height: 0; }
   .album-expanded img { display: block; width: 100%; height: 100%; max-height: 75vh; object-fit: contain; }
   .album-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; margin-top: auto; padding-top: .65rem; }
-  .album-controls form:first-child { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; }
+  .album-controls label { flex: 1 1 14rem; }
+  .album-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
   .album-controls label { margin: 0; min-width: 0; }
-  .album-controls input[type="file"] { width: min(100%, 18rem); }
+  .album-controls input[type="file"] { width: 100%; }
   .album-controls button { margin: 0; }
 </style>
 {% if not embedded %}
@@ -31,16 +32,16 @@
 {% endif %}
 {% if photo %}
   <nav aria-label="Navegação de fotos">
-    {% if page.has_previous %}<a href="?foto={{ page.previous_page_number }}{% if embedded %}&amp;interno=1{% endif %}">Anterior</a> · {% endif %}
-    Foto {{ page.number }} de {{ page.paginator.count }}
-    {% if page.has_next %} · <a href="?foto={{ page.next_page_number }}{% if embedded %}&amp;interno=1{% endif %}">Próxima</a>{% endif %}
+    <a id="album-previous" href="?foto={{ page.number|add:'-1' }}{% if embedded %}&amp;interno=1{% endif %}" {% if not page.has_previous %}hidden{% endif %}>Anterior</a>
+    Foto <span id="album-photo-number">{{ page.number }}</span> de {{ page.paginator.count }}
+    <a id="album-next" href="?foto={{ page.number|add:'1' }}{% if embedded %}&amp;interno=1{% endif %}" {% if not page.has_next %}hidden{% endif %}>Próxima</a>
   </nav>
   <div class="album-view">
     <nav class="album-thumbnails" aria-label="Miniaturas do álbum">
       {% for thumbnail in thumbnails %}
-        <a class="album-thumbnail" href="?foto={{ forloop.counter }}{% if embedded %}&amp;interno=1{% endif %}"
+        <a class="album-thumbnail" data-photo-id="{{ thumbnail.id }}" href="?foto={{ forloop.counter }}{% if embedded %}&amp;interno=1{% endif %}"
            {% if forloop.counter == page.number %}aria-current="true"{% endif %}>
-          <img src="{{ thumbnail }}" alt="Ampliar foto {{ forloop.counter }}" {% if not forloop.first %}loading="lazy"{% endif %}>
+          <img src="{{ thumbnail.url }}" decoding="async" alt="Ampliar foto {{ forloop.counter }}" {% if not forloop.first %}loading="lazy"{% endif %}>
         </a>
       {% endfor %}
     </nav>
@@ -53,14 +54,15 @@
 {% endif %}
 {% if user.is_authenticated %}
   <div class="album-controls">
-  <form method="post" enctype="multipart/form-data" action="{% url 'pilot:change_album' index %}">
+  <form id="album-upload-form" method="post" enctype="multipart/form-data" action="{% url 'pilot:change_album' index %}">
     {% csrf_token %}
     {% if embedded %}<input type="hidden" name="interno" value="1">{% endif %}
-    <label for="album-upload">Nova foto
-      <input id="album-upload" name="arquivo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
-    </label>
-    <button type="submit">Adicionar foto</button>
   </form>
+  <label for="album-upload">Nova foto
+    <input form="album-upload-form" id="album-upload" name="arquivo" type="file" accept=".jpg,.jpeg,.png,.webp" required>
+  </label>
+  <div class="album-actions">
+    <button form="album-upload-form" type="submit">Adicionar foto</button>
   {% if photo %}
   <form method="post" action="{% url 'pilot:change_album' index %}" onsubmit="return confirm('Remover esta foto do álbum?');">
     {% csrf_token %}
@@ -71,8 +73,52 @@
   </form>
   {% endif %}
   </div>
+  </div>
 {% endif %}
 <script>
-  document.querySelector(".album-thumbnail[aria-current=true]")?.scrollIntoView({block: "nearest"});
+  const thumbnails = [...document.querySelectorAll('.album-thumbnail')];
+  const preview = document.querySelector('.album-expanded a');
+  const previous = document.getElementById('album-previous');
+  const next = document.getElementById('album-next');
+  const counter = document.getElementById('album-photo-number');
+  const removalId = document.querySelector('input[name="photo_id"]');
+  let selected = thumbnails.findIndex(item => item.hasAttribute('aria-current'));
+
+  function showPhoto(index) {
+    const thumbnail = thumbnails[index];
+    if (!thumbnail || !preview) return;
+    thumbnails[selected]?.removeAttribute('aria-current');
+    selected = index;
+    thumbnail.setAttribute('aria-current', 'true');
+    thumbnail.scrollIntoView({block: 'nearest'});
+    const image = preview.querySelector('img');
+    preview.href = thumbnail.querySelector('img').src;
+    image.src = preview.href;
+    image.alt = thumbnail.querySelector('img').alt.replace('Ampliar foto', 'Foto');
+    counter.textContent = index + 1;
+    if (removalId) removalId.value = thumbnail.dataset.photoId;
+    previous.hidden = index === 0;
+    next.hidden = index === thumbnails.length - 1;
+    if (!previous.hidden) previous.href = thumbnails[index - 1].href;
+    if (!next.hidden) next.href = thumbnails[index + 1].href;
+    history.replaceState(null, '', thumbnail.href);
+  }
+
+  thumbnails.forEach((thumbnail, index) => {
+    thumbnail.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      showPhoto(index);
+    });
+  });
+  previous?.addEventListener('click', event => {
+    event.preventDefault();
+    showPhoto(selected - 1);
+  });
+  next?.addEventListener('click', event => {
+    event.preventDefault();
+    showPhoto(selected + 1);
+  });
+  thumbnails[selected]?.scrollIntoView({block: 'nearest'});
 </script>
 {% endblock %}

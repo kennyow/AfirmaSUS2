@@ -38,15 +38,15 @@ def available_uploads():
     return paths
 
 
-def album_keys(index, entry, uploaded):
+def album_keys(index, entry, uploaded, has_changes=True):
     prefix = f'albuns/{index}'
-    hidden = set(files_at(f'{prefix}/removidas'))
+    hidden = set(files_at(f'{prefix}/removidas')) if has_changes else set()
     originals = (
         uploaded.get(key, key) for key in entry['keys']
         if key.startswith('legado/') or key in uploaded
     )
     added = (
-        f'{prefix}/fotos/{name}' for name in sorted(files_at(f'{prefix}/fotos'))
+        f'{prefix}/fotos/{name}' for name in sorted(files_at(f'{prefix}/fotos') if has_changes else [])
         if Path(name).suffix.lower() in IMAGE_FORMATS
     )
     return [key for key in (*originals, *added) if photo_id(key) not in hidden]
@@ -58,9 +58,14 @@ def photo_id(key):
 
 def album_cards():
     uploaded = available_uploads()
+    try:
+        changed_albums, _ = default_storage.listdir('albuns')
+    except FileNotFoundError:
+        changed_albums = []
+    changed_albums = {str(name).rstrip('/').rsplit('/', 1)[-1] for name in changed_albums}
     cards = []
     for index, album in enumerate(albums(), start=1):
-        photos = album_keys(index, album, uploaded)
+        photos = album_keys(index, album, uploaded, str(index) in changed_albums)
         cards.append({
             'index': index,
             'title': album['title'],
@@ -95,7 +100,7 @@ def album(request, index):
         'index': index,
         'embedded': request.GET.get('interno') == '1',
         'page': page,
-        'thumbnails': [default_storage.url(item) for item in keys],
+        'thumbnails': [{'url': default_storage.url(item), 'id': photo_id(item)} for item in keys],
         'photo': default_storage.url(key) if key else None,
         'photo_id': photo_id(key) if key else '',
     })
