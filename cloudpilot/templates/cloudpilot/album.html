@@ -1,17 +1,28 @@
 {% extends 'cloudpilot/base.html' %}
 {% block title %}{{ album.title }} · Galeria{% endblock %}
 {% block content %}
-{% if embedded %}<style>header {display:none} main {padding:0.5rem}</style>{% endif %}
+{% if embedded %}
 <style>
-  .album-view { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .75rem; margin-top: .5rem; }
+  header { display: none; }
+  main { display: flex; flex-direction: column; height: 100dvh; padding: .5rem; }
+  main .album-view { flex: 1; min-height: 12rem; }
+  main .album-thumbnails { max-height: none; min-height: 0; }
+  main .album-expanded img { max-height: 100%; }
+</style>
+{% endif %}
+<style>
+  .album-view { display: grid; grid-template-columns: clamp(5.5rem, 18vw, 9rem) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: .75rem; margin-top: .5rem; }
   .album-thumbnails { display: flex; flex-direction: column; gap: .5rem; max-height: 60vh; overflow-y: auto; padding: .25rem; }
   .album-thumbnail { display: block; border: 2px solid transparent; border-radius: .5rem; flex: none; }
   .album-thumbnail[aria-current="true"] { border-color: #481859; }
-  .album-thumbnail img { display: block; width: 100%; height: 3.25rem; object-fit: cover; border-radius: .3rem; }
-  .album-expanded img { display: block; max-width: 100%; max-height: 65vh; margin: auto; }
-  .album-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; }
+  .album-thumbnail img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: .3rem; }
+  .album-expanded { display: grid; place-items: center; min-height: 0; min-width: 0; }
+  .album-expanded a { display: block; width: 100%; height: 100%; min-height: 0; }
+  .album-expanded img { display: block; width: 100%; height: 100%; max-height: 75vh; object-fit: contain; }
+  .album-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; margin-top: auto; padding-top: .65rem; }
   .album-controls form:first-child { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem; }
-  .album-controls label { margin: 0; }
+  .album-controls label { margin: 0; min-width: 0; }
+  .album-controls input[type="file"] { width: min(100%, 18rem); }
   .album-controls button { margin: 0; }
 </style>
 {% if not embedded %}
