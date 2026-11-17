@@ -41,6 +41,9 @@ def salvar_json(caminho, dados):
         json.dump(dados, f, ensure_ascii=False, indent=2)
 
 def ler_linha_tempo_dinamica():
+    if getattr(settings, 'PORTAL_PREVIEW', False):
+        from cloudpilot.timeline import document
+        return document()
     if not os.path.exists(DYNAMIC_TIMELINE_PATH):
         return {'title': {}, 'events': []}
     with open(DYNAMIC_TIMELINE_PATH, 'r', encoding='utf-8') as arquivo:
@@ -261,6 +264,19 @@ def adicionar_midia(request, tipo):
                 messages.error(request, 'Preencha o título e o grupo do evento.')
                 return redirect('midias')
 
+            if media_url:
+                try:
+                    media_url = forms.URLField().clean(media_url)
+                    if not media_url.startswith(('https://', 'http://')):
+                        raise forms.ValidationError('URL inválida')
+                except forms.ValidationError:
+                    messages.error(request, 'Informe um link de mídia HTTP ou HTTPS válido.')
+                    return redirect('midias')
+
+            from django.utils.html import escape
+            headline, group = str(escape(headline)), str(escape(group))
+            descricao, media_caption = str(escape(descricao)), str(escape(media_caption))
+
             evento = {
                 'start_date': {
                     'year': str(year),
@@ -282,7 +298,11 @@ def adicionar_midia(request, tipo):
 
             linha_tempo = ler_linha_tempo_dinamica()
             linha_tempo['events'].append(evento)
-            salvar_json(DYNAMIC_TIMELINE_PATH, linha_tempo)
+            if getattr(settings, 'PORTAL_PREVIEW', False):
+                from cloudpilot.timeline import add
+                add(evento)
+            else:
+                salvar_json(DYNAMIC_TIMELINE_PATH, linha_tempo)
             messages.success(request, 'Evento adicionado à Linha do Tempo Dinâmica.')
 
     return redirect(
@@ -324,6 +344,13 @@ def remover_midia(request, tipo, index):
                 salvar_json(TIMELINE_PATH, atividades)
 
         elif tipo == 'timeline_dinamica':
+            if getattr(settings, 'PORTAL_PREVIEW', False):
+                from cloudpilot.timeline import remove
+                if remove(idx):
+                    messages.success(request, 'Evento removido da Linha do Tempo Dinâmica.')
+                else:
+                    messages.error(request, 'Evento não encontrado. Atualize a página.')
+                return redirect('midias')
             linha_tempo = ler_linha_tempo_dinamica()
             eventos = linha_tempo['events']
             if 0 <= idx < len(eventos):
