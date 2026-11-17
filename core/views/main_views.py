@@ -31,6 +31,10 @@ def home(request):
             with open(caminho_json, 'r', encoding='utf-8') as f:
                 dados_timeline = json.load(f)
 
+            if getattr(settings, 'PORTAL_PREVIEW', False):
+                from cloudpilot.timeline import document
+                dados_timeline = document()
+
             if "title" in dados_timeline and "media" in dados_timeline["title"]:
                 if "url" in dados_timeline["title"]["media"]:
                     dados_timeline["title"]["media"]["url"] = converter_link_drive(dados_timeline["title"]["media"]["url"])
