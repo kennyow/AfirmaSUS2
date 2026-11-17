@@ -31,6 +31,10 @@ class PortalPreviewMiddleware(MiddlewareMixin):
             return None
         if not request.user.is_authenticated:
             return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
+        if (request.method == 'POST'
+                and request.resolver_match.url_name in {'adicionar_midia', 'remover_midia'}
+                and view_kwargs.get('tipo') == 'timeline_dinamica'):
+            return None
         if request.method == 'POST' and request.resolver_match.url_name in {
             'publicar_formacao', 'editar_formacao', 'excluir_formacao',
         }:
@@ -60,7 +64,8 @@ def read_document(name, default):
 
 
 def statistics(request):
-    events = read_document('linhadotempodinamica.json', {}).get('events', [])
+    from cloudpilot.timeline import document
+    events = document().get('events', [])
     metrics = read_document('indicadores.json', {})
     monthly, categories = Counter(), Counter()
     for event in events:
