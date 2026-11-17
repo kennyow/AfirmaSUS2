@@ -248,10 +248,10 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-header bg-white border-0 pt-4 px-4">
                 <h5 class="fw-bold text-dark mb-1">Adicionar à Linha do Tempo Dinâmica</h5>
-                <p class="text-muted small mb-0">Preencha os campos do evento conforme <code>linhadotempodinamica.json</code>.</p>
+                <p class="text-muted small mb-0">Cadastre um evento para exibi-lo na linha do tempo da apresentação.</p>
             </div>
             <div class="card-body px-4 pb-4">
-                <form action="{% url 'adicionar_midia' 'timeline_dinamica' %}" method="POST">
+                <form action="{% url 'adicionar_midia' 'timeline_dinamica' %}" method="POST" data-pilot-edit>
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-sm-4">
@@ -461,7 +461,7 @@
 {% if user.is_authenticated and eventos_timeline_dinamica %}
 <div class="modal fade" id="modalRemoverEventoDinamico" tabindex="-1" aria-labelledby="modalRemoverEventoDinamicoLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <form class="modal-content" method="POST" action="#" id="formRemoverEventoDinamico">
+        <form class="modal-content" method="POST" action="#" id="formRemoverEventoDinamico" data-pilot-edit>
             {% csrf_token %}
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="modalRemoverEventoDinamicoLabel">Remover evento dinâmico</h5>
@@ -471,7 +471,7 @@
                 <label for="selecionarEventoDinamico" class="form-label">Escolha o evento</label>
                 <select id="selecionarEventoDinamico" class="form-select" required>
                     {% for evento in eventos_timeline_dinamica %}
-                    <option value="{% url 'remover_midia' 'timeline_dinamica' forloop.counter0 %}">{{ evento.start_date.year }}-{{ evento.start_date.month }}-{{ evento.start_date.day }} — {{ evento.text.headline }}</option>
+                    <option value="{% if portal_preview %}{% url 'remover_midia' 'timeline_dinamica' evento.removal_id %}{% else %}{% url 'remover_midia' 'timeline_dinamica' forloop.counter0 %}{% endif %}">{{ evento.start_date.year }}-{{ evento.start_date.month }}-{{ evento.start_date.day }} — {{ evento.text.headline }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -545,4 +545,3 @@
 
 </script>
 {% endblock %}
-
