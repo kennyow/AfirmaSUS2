@@ -255,16 +255,8 @@
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-sm-4">
-                            <label for="dinamica-year" class="form-label">Ano</label>
-                            <input id="dinamica-year" type="number" name="year" class="form-control" min="1" max="9999" required>
-                        </div>
-                        <div class="col-sm-4">
-                            <label for="dinamica-month" class="form-label">Mês</label>
-                            <input id="dinamica-month" type="number" name="month" class="form-control" min="1" max="12" required>
-                        </div>
-                        <div class="col-sm-4">
-                            <label for="dinamica-day" class="form-label">Dia</label>
-                            <input id="dinamica-day" type="number" name="day" class="form-control" min="1" max="31" required>
+                            <label for="dinamica-data" class="form-label">Data do evento</label>
+                            <input id="dinamica-data" type="date" name="data_evento" class="form-control" min="0001-01-01" max="9999-12-31" required>
                         </div>
                         <div class="col-md-6">
                             <label for="dinamica-headline" class="form-label">Título do evento</label>
