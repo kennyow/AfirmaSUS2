@@ -86,3 +86,25 @@ def ordenar_atividades_timeline(atividades):
         key=chave_cronologica_atividade,
         reverse=True,
     )
+
+
+def completar_datas_atividades(atividades, eventos):
+    """Resolve month-only album dates from matching, unambiguous TimelineJS events."""
+    from datetime import date
+    dates = {}
+    for event in eventos:
+        title = event.get('text', {}).get('headline', '').strip().casefold()
+        start = event.get('start_date', {})
+        try:
+            event_date = date(int(start['year']), int(start['month']), int(start['day']))
+        except (KeyError, TypeError, ValueError):
+            continue
+        dates.setdefault((title, event_date.year, event_date.month), set()).add(event_date)
+    result = []
+    for activity in atividades:
+        valid, year, month, day = chave_cronologica_atividade(activity)
+        candidates = dates.get((activity.get('titulo', '').strip().casefold(), year, month), set())
+        if valid and not day and len(candidates) == 1:
+            activity = {**activity, 'data': next(iter(candidates)).strftime('%d/%m/%Y')}
+        result.append(activity)
+    return result
