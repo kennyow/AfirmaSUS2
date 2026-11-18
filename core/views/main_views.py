@@ -5,7 +5,7 @@ from datetime import date
 from django.shortcuts import render, redirect
 from django.conf import settings
 from ..models import Local, Atividade, Integrante, EscalaTrabalho
-from .utils import converter_link_drive, ordenar_atividades_timeline
+from .utils import converter_link_drive, ordenar_atividades_timeline, completar_datas_atividades
 from .management_views import _carregar_notas_calendario
 
 
@@ -25,6 +25,7 @@ def home(request):
     # Carregamento da Linha do Tempo Geral (JSON TimelineJS)
     caminho_json = os.path.join(settings.DATA_DIR, 'linhadotempodinamica.json')
     timeline_json_str = "{}"
+    dados_timeline = {}
 
     if os.path.exists(caminho_json):
         try:
@@ -57,6 +58,7 @@ def home(request):
         if getattr(settings, 'PORTAL_PREVIEW', False):
             from cloudpilot.galeria import timeline_albums
             atividades_raw.extend(timeline_albums())
+        atividades_raw = completar_datas_atividades(atividades_raw, dados_timeline.get('events', []))
         atividades_raw = ordenar_atividades_timeline(atividades_raw)
         atividades_timeline = []
         for ev in atividades_raw:
