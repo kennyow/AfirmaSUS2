@@ -142,6 +142,9 @@ def excluir_formacao(request, pk):
 def midias(request):
     apresentacoes_raw = ler_json(APRESENTACOES_PATH)
     videos_raw = ler_json(VIDEOS_PATH)
+    if getattr(settings, 'PORTAL_PREVIEW', False):
+        from cloudpilot.videos import catalog
+        videos_raw = catalog()
     # 2. Slides / Apresentações
     apresentacoes = []
     for item in apresentacoes_raw:
@@ -210,13 +213,33 @@ def adicionar_midia(request, tipo):
             salvar_json(APRESENTACOES_PATH, apresentacoes)
 
         elif tipo == 'video':
-            videos = ler_json(VIDEOS_PATH)
-            videos.append({
-                'titulo': titulo,
-                'url': link,
-                'descricao': descricao
-            })
-            salvar_json(VIDEOS_PATH, videos)
+            from urllib.parse import urlparse
+            titulo = (titulo or '').strip()
+            try:
+                link = forms.URLField(max_length=500).clean(link)
+                host = (urlparse(link).hostname or '').lower()
+                if host not in {'youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be', 'youtube-nocookie.com', 'www.youtube-nocookie.com'} or not extrair_youtube_id(link):
+                    raise forms.ValidationError('Link de vídeo inválido.')
+            except forms.ValidationError:
+                messages.error(request, 'Informe um link válido de vídeo do YouTube.')
+                return redirect('midias')
+            if not titulo or len(titulo) > 200:
+                messages.error(request, 'Informe um título de até 200 caracteres.')
+                return redirect('midias')
+            item = {'titulo': titulo, 'url': link, 'descricao': descricao.strip()}
+            try:
+                if getattr(settings, 'PORTAL_PREVIEW', False):
+                    from cloudpilot.videos import add
+                    add(item)
+                else:
+                    videos = ler_json(VIDEOS_PATH)
+                    videos.append(item)
+                    salvar_json(VIDEOS_PATH, videos)
+            except Exception:
+                logging.getLogger(__name__).exception('Falha ao cadastrar vídeo.')
+                messages.error(request, 'Não foi possível salvar o vídeo. Tente novamente.')
+            else:
+                messages.success(request, 'Vídeo adicionado.')
 
         elif tipo == 'timeline':
             data = request.POST.get('data', '').strip()
@@ -355,6 +378,19 @@ def remover_midia(request, tipo, index):
                 salvar_json(APRESENTACOES_PATH, apresentacoes)
 
         elif tipo == 'video':
+            if getattr(settings, 'PORTAL_PREVIEW', False):
+                from cloudpilot.videos import remove
+                try:
+                    removed = remove(idx)
+                except Exception:
+                    logging.getLogger(__name__).exception('Falha ao remover vídeo.')
+                    messages.error(request, 'Não foi possível remover o vídeo. Tente novamente.')
+                else:
+                    if removed:
+                        messages.success(request, 'Vídeo removido.')
+                    else:
+                        messages.error(request, 'Vídeo não encontrado. Atualize a página.')
+                return redirect('midias')
             videos = ler_json(VIDEOS_PATH)
             if 0 <= idx < len(videos):
                 videos.pop(idx)
