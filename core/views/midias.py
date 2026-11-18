@@ -258,20 +258,22 @@ def adicionar_midia(request, tipo):
 
             headline = (titulo or '').strip()
             group = request.POST.get('group', '').strip()
-            media_url = request.POST.get('media_url', '').strip()
+            media_url = ''
             media_caption = request.POST.get('media_caption', '').strip()
-            if not headline or not group:
-                messages.error(request, 'Preencha o título e o grupo do evento.')
+            if not headline or len(headline) > 200 or group not in {'Eventos', 'Reuniões', 'Atividades', 'Outros'}:
+                messages.error(request, 'Informe um título de até 200 caracteres e selecione um grupo da lista.')
                 return redirect('midias')
 
-            if media_url:
-                try:
-                    media_url = forms.URLField().clean(media_url)
-                    if not media_url.startswith(('https://', 'http://')):
-                        raise forms.ValidationError('URL inválida')
-                except forms.ValidationError:
-                    messages.error(request, 'Informe um link de mídia HTTP ou HTTPS válido.')
+            image = None
+            if request.FILES:
+                if sum(len(request.FILES.getlist(key)) for key in request.FILES) != 1:
+                    messages.error(request, 'Envie apenas uma imagem por evento.')
                     return redirect('midias')
+                upload_form = UploadPublicoForm({'titulo': headline}, request.FILES)
+                if not upload_form.is_valid() or not upload_form.cleaned_data['arquivo'].content_type.startswith('image/'):
+                    messages.error(request, 'Envie uma imagem JPG, PNG ou WebP válida de até 5 MB.')
+                    return redirect('midias')
+                image = upload_form.cleaned_data['arquivo']
 
             from django.utils.html import escape
             headline, group = str(escape(headline)), str(escape(group))
@@ -296,13 +298,29 @@ def adicionar_midia(request, tipo):
                 if media_caption:
                     evento['media']['caption'] = media_caption
 
-            linha_tempo = ler_linha_tempo_dinamica()
-            linha_tempo['events'].append(evento)
-            if getattr(settings, 'PORTAL_PREVIEW', False):
-                from cloudpilot.timeline import add
-                add(evento)
-            else:
-                salvar_json(DYNAMIC_TIMELINE_PATH, linha_tempo)
+            image_key = None
+            try:
+                if image is not None:
+                    extension = PurePosixPath(image.name).suffix.lower()
+                    image_key = default_storage.save(f'timeline-dinamica/imagens/{uuid4().hex}{extension}', image)
+                    evento.setdefault('media', {})['url'] = default_storage.url(image_key)
+                if getattr(settings, 'PORTAL_PREVIEW', False):
+                    from cloudpilot.timeline import add
+                    add(evento)
+                else:
+                    linha_tempo = ler_linha_tempo_dinamica()
+                    linha_tempo['events'].append(evento)
+                    salvar_json(DYNAMIC_TIMELINE_PATH, linha_tempo)
+            except Exception:
+                logger = logging.getLogger(__name__)
+                logger.exception('Falha ao salvar evento dinâmico.')
+                if image_key:
+                    try:
+                        default_storage.delete(image_key)
+                    except Exception:
+                        logger.exception('Falha ao limpar imagem sem evento.')
+                messages.error(request, 'Não foi possível salvar o evento. Tente novamente.')
+                return redirect('midias')
             messages.success(request, 'Evento adicionado à Linha do Tempo Dinâmica.')
 
     return redirect(
