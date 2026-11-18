@@ -33,7 +33,7 @@ class PortalPreviewMiddleware(MiddlewareMixin):
             return redirect_to_login(request.get_full_path(), settings.LOGIN_URL)
         if (request.method == 'POST'
                 and request.resolver_match.url_name in {'adicionar_midia', 'remover_midia'}
-                and view_kwargs.get('tipo') == 'timeline_dinamica'):
+                and view_kwargs.get('tipo') in {'timeline_dinamica', 'video'}):
             return None
         if request.method == 'POST' and request.resolver_match.url_name in {
             'publicar_formacao', 'editar_formacao', 'excluir_formacao',
