@@ -251,7 +251,7 @@
                 <p class="text-muted small mb-0">Cadastre um evento para exibi-lo na linha do tempo da apresentação.</p>
             </div>
             <div class="card-body px-4 pb-4">
-                <form action="{% url 'adicionar_midia' 'timeline_dinamica' %}" method="POST" data-pilot-edit>
+                <form action="{% url 'adicionar_midia' 'timeline_dinamica' %}" method="POST" enctype="multipart/form-data" data-pilot-edit>
                     {% csrf_token %}
                     <div class="row g-3">
                         <div class="col-sm-4">
@@ -272,15 +272,22 @@
                         </div>
                         <div class="col-md-6">
                             <label for="dinamica-group" class="form-label">Grupo</label>
-                            <input id="dinamica-group" type="text" name="group" class="form-control" placeholder="Ex.: Eventos" required>
+                            <select id="dinamica-group" name="group" class="form-select" required>
+                                <option value="" selected disabled>Selecione o grupo</option>
+                                <option value="Eventos">Eventos</option>
+                                <option value="Reuniões">Reuniões</option>
+                                <option value="Atividades">Atividades</option>
+                                <option value="Outros">Outros</option>
+                            </select>
                         </div>
                         <div class="col-12">
                             <label for="dinamica-text" class="form-label">Descrição</label>
                             <textarea id="dinamica-text" name="descricao" class="form-control" rows="3"></textarea>
                         </div>
                         <div class="col-md-8">
-                            <label for="dinamica-media-url" class="form-label">Link da mídia (opcional)</label>
-                            <input id="dinamica-media-url" type="url" name="media_url" class="form-control" placeholder="https://...">
+                            <label for="dinamica-imagem" class="form-label">Imagem (opcional)</label>
+                            <input id="dinamica-imagem" type="file" name="arquivo" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                            <div class="form-text">Uma imagem JPG, PNG ou WebP de até 5 MB.</div>
                         </div>
                         <div class="col-md-4">
                             <label for="dinamica-media-caption" class="form-label">Legenda da mídia</label>
