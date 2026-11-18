@@ -1,7 +1,7 @@
 from django.urls import path
 
 from . import views
-from .galeria import album, change_album, create_album, galeria
+from .galeria import album, change_album, create_album, delete_album, galeria
 
 app_name = 'pilot'
 urlpatterns = [
@@ -12,5 +12,6 @@ urlpatterns = [
     path('midias/galeria/adicionar/', create_album, name='create_album'),
     path('midias/galeria/<int:index>/', album, name='album'),
     path('midias/galeria/<int:index>/alterar/', change_album, name='change_album'),
+    path('midias/galeria/<int:index>/excluir/', delete_album, name='delete_album'),
     path('health/', views.health, name='health'),
 ]
