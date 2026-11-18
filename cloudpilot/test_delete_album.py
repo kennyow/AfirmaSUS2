@@ -33,8 +33,8 @@ class DeleteAlbumTests(SimpleTestCase):
         self.photo.parent.mkdir(parents=True)
         self.photo.write_bytes(b'preservar')
 
-    def request(self, method='post', authenticated=True):
-        request = getattr(RequestFactory(), method)('/midias/galeria/100/excluir/')
+    def request(self, method='post', authenticated=True, data=None):
+        request = getattr(RequestFactory(), method)('/midias/galeria/100/excluir/', data or {})
         request.user = SimpleNamespace(is_authenticated=authenticated)
         request.session = {}
         request._messages = FallbackStorage(request)
@@ -67,3 +67,31 @@ class DeleteAlbumTests(SimpleTestCase):
         self.assertIn('id="delete-album-modal"', member)
         self.assertIn('/midias/galeria/100/excluir/', member)
         self.assertNotIn('id="delete-album-modal"', public)
+
+    def test_album_dates_override_random_identifiers(self):
+        for identity, event_date in ((100, '02/11/2026'), (99, '17/11/2026'), (999, 'Setembro / 2026')):
+            (self.root / 'albuns-publicados' / str(identity)).write_text(json.dumps({
+                'title': str(identity), 'keys': [], 'timeline': True, 'data': event_date,
+            }), encoding='utf-8')
+        self.assertEqual([i for i, _ in galeria.published_albums()], [99, 100, 999])
+        self.assertEqual([a['index'] for a in galeria.album_cards()], [99, 100, 999, 1])
+        self.assertEqual([a['titulo'] for a in galeria.timeline_albums()], ['99', '100', '999'])
+
+    def test_new_album_stores_complete_date_and_creation_time(self):
+        galeria.create_album(self.request(data={'titulo': 'Novo evento', 'data': '2026-11-17',
+                                               'categoria': 'Eventos', 'timeline': '1'}))
+        entry = next(galeria.published_albums())[1]
+        self.assertEqual(entry['data'], '17/11/2026')
+        self.assertTrue(entry['created_at'])
+
+    def test_invalid_calendar_date_is_rejected(self):
+        galeria.create_album(self.request(data={'titulo': 'Inválido', 'data': '2026-02-30',
+                                               'categoria': 'Eventos', 'timeline': '1'}))
+        self.assertEqual(len(list(galeria.published_albums())), 1)
+
+    def test_creation_time_breaks_same_day_tie(self):
+        for identity, created in ((100, '2026-11-17T08:00:00+00:00'), (99, '2026-11-17T09:00:00+00:00')):
+            (self.root / 'albuns-publicados' / str(identity)).write_text(json.dumps({
+                'title': str(identity), 'keys': [], 'data': '17/11/2026', 'created_at': created,
+            }), encoding='utf-8')
+        self.assertEqual([i for i, _ in galeria.published_albums()], [99, 100])
