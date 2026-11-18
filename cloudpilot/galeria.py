@@ -62,8 +62,9 @@ def photo_id(key):
 
 
 def published_albums():
+    removed = set(files_at('albuns-excluidos'))
     for name in sorted(files_at('albuns-publicados'), reverse=True):
-        if name.isdecimal():
+        if name.isdecimal() and name not in removed:
             yield int(name), get_album(int(name))
 
 
@@ -136,6 +137,7 @@ def create_album(request):
 
 
 def album_cards():
+    removed = set(files_at('albuns-excluidos'))
     uploaded = available_uploads()
     try:
         changed_albums, _ = default_storage.listdir('albuns')
@@ -145,6 +147,8 @@ def album_cards():
     cards = []
     catalog = [*published_albums(), *enumerate(albums(), start=1)]
     for index, album in catalog:
+        if str(index) in removed:
+            continue
         photos = album_keys(index, album, uploaded, 'timeline' in album or str(index) in changed_albums)
         cards.append({
             'index': index,
@@ -162,6 +166,8 @@ def galeria(request):
 
 
 def get_album(index):
+    if default_storage.exists(f'albuns-excluidos/{index}'):
+        raise Http404
     catalog = albums()
     if 1 <= index <= len(catalog):
         return catalog[index - 1]
@@ -170,6 +176,20 @@ def get_album(index):
             return json.load(document)
     except FileNotFoundError as error:
         raise Http404 from error
+
+
+@login_required
+@require_POST
+def delete_album(request, index):
+    get_album(index)
+    try:
+        # A tombstone removes access and publication while preserving stored photos.
+        default_storage.save(f'albuns-excluidos/{index}', ContentFile(b'1'))
+    except Exception:
+        messages.error(request, 'Não foi possível excluir o álbum. Tente novamente.')
+    else:
+        messages.success(request, 'Álbum excluído da Galeria e da Linha do Tempo de Atividades.')
+    return redirect('midias')
 
 
 @xframe_options_sameorigin
