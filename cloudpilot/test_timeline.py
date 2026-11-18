@@ -59,8 +59,8 @@ class DynamicTimelineTests(SimpleTestCase):
         self.assertEqual(guard.process_view(anonymous, adicionar_midia, (), {'tipo': 'timeline_dinamica'}).status_code, 302)
         self.assertEqual(adicionar_midia(anonymous, 'timeline_dinamica').status_code, 302)
         self.assertEqual(len(timeline.document()['events']), 2)
-        unrelated = self.request('/plataforma/midias/adicionar/video/')
-        self.assertEqual(guard.process_view(unrelated, adicionar_midia, (), {'tipo': 'video'}).status_code, 403)
+        unrelated = self.request('/plataforma/midias/adicionar/slide/')
+        self.assertEqual(guard.process_view(unrelated, adicionar_midia, (), {'tipo': 'slide'}).status_code, 403)
 
     def test_invalid_date_does_not_publish(self):
         request = self.request('/plataforma/midias/adicionar/timeline_dinamica/',
