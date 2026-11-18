@@ -386,7 +386,7 @@
                     </div>
                     {% if user.is_authenticated %}
                     <div class="card-footer bg-transparent border-0 text-end pb-3 pt-0 px-4">
-                        <form action="{% url 'remover_midia' 'video' forloop.counter0 %}" method="POST" style="display:inline;">
+                        <form action="{% if portal_preview %}{% url 'remover_midia' 'video' vid.removal_id %}{% else %}{% url 'remover_midia' 'video' forloop.counter0 %}{% endif %}" method="POST" style="display:inline;" data-pilot-edit>
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-danger btn-sm rounded-3" onclick="return confirm('Confirmar remoção deste vídeo?');">🗑️ Remover</button>
                         </form>
@@ -395,7 +395,7 @@
                 </div>
             </div>
             {% empty %}
-            <div class="col-12"><p class="text-muted italic">Nenhum vídeo registrado no arquivo JSON.</p></div>
+            <div class="col-12"><p class="text-muted italic">Nenhum vídeo cadastrado.</p></div>
             {% endfor %}
         </div>
     </section>
@@ -419,21 +419,23 @@
 </div>
 
 <!-- Modal Adicionar Vídeo -->
+{% if user.is_authenticated %}
 <div class="modal fade" id="modalVideo" tabindex="-1">
   <div class="modal-dialog">
-    <form action="{% url 'adicionar_midia' 'video' %}" method="POST" class="modal-content rounded-4">
+    <form action="{% url 'adicionar_midia' 'video' %}" method="POST" class="modal-content rounded-4" data-pilot-edit>
       {% csrf_token %}
       <div class="modal-header"><h5 class="modal-title fw-bold">Adicionar Vídeo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
       <div class="modal-body">
-        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título do Vídeo" required>
+        <input type="text" name="titulo" class="form-control mb-2" placeholder="Título do Vídeo" maxlength="200" required>
         <input type="url" name="link" class="form-control mb-2" placeholder="Link do YouTube (Ex: https://youtu.be/...)" required>
         <textarea name="descricao" class="form-control" placeholder="Descrição rápida do vídeo..."></textarea>
       </div>
-      <div class="modal-footer"><button type="submit" class="btn btn-success fw-bold">Salvar no JSON</button></div>
+      <div class="modal-footer"><button type="submit" class="btn btn-success fw-bold">Salvar vídeo</button></div>
     </form>
   </div>
 </div>
 
+{% endif %}
 {% if not portal_preview and user.is_authenticated and atividades_timeline %}
 <div class="modal fade" id="modalRemoverAtividade" tabindex="-1" aria-labelledby="modalRemoverAtividadeLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
