@@ -78,6 +78,9 @@
         <div class="d-flex align-items-center justify-content-end gap-2 mb-3">
             {% if user.is_authenticated %}
                 <button type="button" class="btn album-primary" data-bs-toggle="modal" data-bs-target="#add-album-modal">+ Adicionar Álbum</button>
+                {% if gallery_albums %}
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delete-album-modal"><i class="fas fa-trash-alt me-1" aria-hidden="true"></i> Excluir Álbum</button>
+                {% endif %}
             {% endif %}
             {% if gallery_albums|length > 1 %}
                 <div class="d-flex gap-2">
@@ -485,6 +488,45 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if portal_preview and user.is_authenticated and gallery_albums %}
+<div class="modal fade" id="delete-album-modal" tabindex="-1" aria-labelledby="delete-album-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="delete-album-title">Excluir Álbum</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="delete-album-select" class="form-label">Escolha o álbum</label>
+                <select id="delete-album-select" class="form-select" form="delete-album-form" required>
+                    <option value="" selected disabled>Selecione um álbum</option>
+                    {% for album in gallery_albums %}
+                    <option value="{% url 'pilot:delete_album' album.index %}">{{ album.title }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-muted mt-3 mb-0">O álbum deixará de aparecer na Galeria e, se estiver publicado nela, na Linha do Tempo de Atividades.</p>
+            </div>
+            <form id="delete-album-form" method="post" data-pilot-edit>
+                {% csrf_token %}
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Excluir Álbum</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('delete-album-form').addEventListener('submit', function (event) {
+    const selected = document.getElementById('delete-album-select');
+    if (!selected.value || !confirm('Excluir o álbum "' + selected.options[selected.selectedIndex].text + '"?')) {
+        event.preventDefault();
+        return;
+    }
+    this.action = selected.value;
+});
+</script>
+{% endif %}
 {% if portal_preview %}
 <script>
     const albumDialog = document.getElementById('gallery-dialog');
