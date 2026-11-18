@@ -243,10 +243,15 @@ def adicionar_midia(request, tipo):
 
         elif tipo == 'timeline_dinamica':
             try:
-                year = int(request.POST.get('year', ''))
-                month = int(request.POST.get('month', ''))
-                day = int(request.POST.get('day', ''))
-            except ValueError:
+                if 'data_evento' in request.POST:
+                    event_date = forms.DateField(input_formats=['%Y-%m-%d']).clean(request.POST.get('data_evento'))
+                    year, month, day = event_date.year, event_date.month, event_date.day
+                else:
+                    # Accept forms opened before the date picker was published.
+                    year = int(request.POST.get('year', ''))
+                    month = int(request.POST.get('month', ''))
+                    day = int(request.POST.get('day', ''))
+            except (ValueError, forms.ValidationError):
                 messages.error(request, 'Informe uma data válida para o evento.')
                 return redirect('midias')
 
