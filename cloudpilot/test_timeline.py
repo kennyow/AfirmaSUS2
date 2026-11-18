@@ -1,10 +1,13 @@
 import json
+from io import BytesIO
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.core.files.storage import FileSystemStorage
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from django.test import RequestFactory, SimpleTestCase, override_settings
 from django.urls import resolve
 from unittest.mock import patch
@@ -30,6 +33,9 @@ class DynamicTimelineTests(SimpleTestCase):
         self.storage_patch = patch.object(timeline, 'default_storage', FileSystemStorage(location=root / 'r2'))
         self.storage_patch.start()
         self.addCleanup(self.storage_patch.stop)
+        self.view_storage_patch = patch('core.views.midias.default_storage', timeline.default_storage)
+        self.view_storage_patch.start()
+        self.addCleanup(self.view_storage_patch.stop)
 
     def request(self, path, data=None, authenticated=True):
         request = RequestFactory().post(path, data or {})
@@ -41,7 +47,7 @@ class DynamicTimelineTests(SimpleTestCase):
 
     def test_member_can_publish_and_public_cannot(self):
         path = '/plataforma/midias/adicionar/timeline_dinamica/'
-        data = {'year': '2026', 'month': '11', 'day': '17', 'titulo': 'Novo evento', 'group': 'Reunião'}
+        data = {'year': '2026', 'month': '11', 'day': '17', 'titulo': 'Novo evento', 'group': 'Reuniões'}
         request = self.request(path, data)
         guard = PortalPreviewMiddleware(lambda request: None)
         self.assertIsNone(guard.process_view(request, adicionar_midia, (), {'tipo': 'timeline_dinamica'}))
@@ -79,9 +85,45 @@ class DynamicTimelineTests(SimpleTestCase):
         template = get_template('core/linha_tempo_midias.html')
         html = template.render({'user': SimpleNamespace(is_authenticated=True), 'portal_preview': True,
                                 'eventos_timeline_dinamica': timeline.document()['events']})
-        self.assertIn('method="POST" data-pilot-edit', html)
+        self.assertIn('enctype="multipart/form-data" data-pilot-edit', html)
+        self.assertIn('<select id="dinamica-group"', html)
+        self.assertNotIn('name="media_url"', html)
         self.assertIn('id="formRemoverEventoDinamico" data-pilot-edit', html)
         self.assertIn(f"/timeline_dinamica/{timeline.document()['events'][0]['removal_id']}/", html)
         public = template.render({'user': SimpleNamespace(is_authenticated=False), 'portal_preview': True,
                                   'eventos_timeline_dinamica': timeline.document()['events']})
         self.assertNotIn('id="dinamica-year"', public)
+
+    def image(self):
+        buffer = BytesIO()
+        Image.new('RGB', (4, 4)).save(buffer, format='PNG')
+        return SimpleUploadedFile('foto.png', buffer.getvalue(), content_type='image/png')
+
+    def publish(self, **extra):
+        data = {'year': '2026', 'month': '11', 'day': '17', 'titulo': 'Imagem', 'group': 'Eventos'}
+        data.update(extra)
+        return adicionar_midia(self.request('/plataforma/midias/adicionar/timeline_dinamica/', data), 'timeline_dinamica')
+
+    def test_single_image_is_saved_with_public_url(self):
+        self.publish(arquivo=self.image())
+        event = timeline.document()['events'][-1]
+        self.assertTrue(event['media']['url'].endswith('.png'))
+        self.assertIn('/timeline-dinamica/imagens/', event['media']['url'])
+        self.assertEqual(len(timeline.names('timeline-dinamica/imagens')), 1)
+
+    @override_settings(DATA_UPLOAD_MAX_NUMBER_FILES=2)
+    def test_rejects_invalid_group_multiple_files_and_fake_image(self):
+        for data in ({'group': 'Livre'}, {'arquivo': [self.image(), self.image()]},
+                     {'arquivo': SimpleUploadedFile('foto.png', b'fake', content_type='image/png')},
+                     {'arquivo': SimpleUploadedFile('texto.pdf', b'%PDF-1.7\n%%EOF', content_type='application/pdf')}):
+            with self.subTest(data=list(data)):
+                self.publish(**data)
+                self.assertEqual(len(timeline.document()['events']), 1)
+        self.assertEqual(timeline.names('timeline-dinamica/imagens'), [])
+
+    def test_failed_event_save_cleans_uploaded_image(self):
+        with patch.object(timeline, 'add', side_effect=OSError('storage unavailable')):
+            with self.assertLogs('core.views.midias', level='ERROR'):
+                self.publish(arquivo=self.image())
+        self.assertEqual(timeline.names('timeline-dinamica/imagens'), [])
+        self.assertEqual(len(timeline.document()['events']), 1)
