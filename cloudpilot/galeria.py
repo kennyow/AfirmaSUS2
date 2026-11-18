@@ -15,6 +15,7 @@ from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST, require_safe
+from django.utils import timezone
 
 from .forms import IMAGE_FORMATS, UploadPublicoForm
 
@@ -62,10 +63,16 @@ def photo_id(key):
 
 
 def published_albums():
+    from core.views.utils import chave_cronologica_atividade
     removed = set(files_at('albuns-excluidos'))
-    for name in sorted(files_at('albuns-publicados'), reverse=True):
+    entries = []
+    for name in files_at('albuns-publicados'):
         if name.isdecimal() and name not in removed:
-            yield int(name), get_album(int(name))
+            entries.append((int(name), get_album(int(name))))
+    # UUIDs identify albums but have no chronological meaning.
+    yield from sorted(entries, key=lambda item: (
+        chave_cronologica_atividade(item[1]), item[1].get('created_at', ''),
+    ), reverse=True)
 
 
 def timeline_albums():
@@ -89,6 +96,13 @@ def create_album(request):
     if not title or len(title) > 200 or (timeline and not (date and category)):
         messages.error(request, 'Informe o título e, para a Linha do Tempo, a data e a categoria.')
         return redirect('midias')
+    if date:
+        try:
+            selected_date = forms.DateField(input_formats=['%Y-%m-%d']).clean(date)
+        except forms.ValidationError:
+            messages.error(request, 'Escolha uma data válida no calendário.')
+            return redirect('midias')
+        date = selected_date.strftime('%d/%m/%Y')
     if len(color) != 7 or color[0] != '#' or any(c not in '0123456789abcdefABCDEF' for c in color[1:]):
         messages.error(request, 'Escolha uma cor válida.')
         return redirect('midias')
@@ -122,7 +136,7 @@ def create_album(request):
             keys.append(default_storage.save(f'albuns/{index}/fotos/{position:04d}-{uuid4().hex}{extension}', file))
         entry = {'title': title, 'data': date, 'categoria': category, 'cor_borda': color,
                  'descricao': request.POST.get('descricao', '').strip(), 'timeline': timeline,
-                 'keys': [], 'links': links}
+                 'keys': [], 'links': links, 'created_at': timezone.now().isoformat()}
         default_storage.save(f'albuns-publicados/{index}', ContentFile(json.dumps(entry).encode()))
     except Exception:
         for key in keys:
