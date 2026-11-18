@@ -47,13 +47,14 @@ class DynamicTimelineTests(SimpleTestCase):
 
     def test_member_can_publish_and_public_cannot(self):
         path = '/plataforma/midias/adicionar/timeline_dinamica/'
-        data = {'year': '2026', 'month': '11', 'day': '17', 'titulo': 'Novo evento', 'group': 'Reuniões'}
+        data = {'data_evento': '2026-11-17', 'titulo': 'Novo evento', 'group': 'Reuniões'}
         request = self.request(path, data)
         guard = PortalPreviewMiddleware(lambda request: None)
         self.assertIsNone(guard.process_view(request, adicionar_midia, (), {'tipo': 'timeline_dinamica'}))
         self.assertEqual(adicionar_midia(request, 'timeline_dinamica').status_code, 302)
         self.assertEqual([e['text']['headline'] for e in timeline.document()['events']], ['Legado', 'Novo evento'])
         self.assertEqual(json.loads(self.source.read_text(encoding='utf-8')), self.original)
+        self.assertEqual(timeline.document()['events'][-1]['start_date'], {'year': '2026', 'month': '11', 'day': '17'})
         anonymous = self.request(path, data, False)
         self.assertEqual(guard.process_view(anonymous, adicionar_midia, (), {'tipo': 'timeline_dinamica'}).status_code, 302)
         self.assertEqual(adicionar_midia(anonymous, 'timeline_dinamica').status_code, 302)
@@ -63,7 +64,7 @@ class DynamicTimelineTests(SimpleTestCase):
 
     def test_invalid_date_does_not_publish(self):
         request = self.request('/plataforma/midias/adicionar/timeline_dinamica/',
-                               {'year': '2026', 'month': '2', 'day': '30', 'titulo': 'Inválido', 'group': 'Evento'})
+                               {'data_evento': '2026-02-30', 'titulo': 'Inválido', 'group': 'Eventos'})
         adicionar_midia(request, 'timeline_dinamica')
         self.assertEqual(len(timeline.document()['events']), 1)
 
@@ -87,12 +88,14 @@ class DynamicTimelineTests(SimpleTestCase):
                                 'eventos_timeline_dinamica': timeline.document()['events']})
         self.assertIn('enctype="multipart/form-data" data-pilot-edit', html)
         self.assertIn('<select id="dinamica-group"', html)
+        self.assertIn('id="dinamica-data" type="date"', html)
+        self.assertNotIn('id="dinamica-year"', html)
         self.assertNotIn('name="media_url"', html)
         self.assertIn('id="formRemoverEventoDinamico" data-pilot-edit', html)
         self.assertIn(f"/timeline_dinamica/{timeline.document()['events'][0]['removal_id']}/", html)
         public = template.render({'user': SimpleNamespace(is_authenticated=False), 'portal_preview': True,
                                   'eventos_timeline_dinamica': timeline.document()['events']})
-        self.assertNotIn('id="dinamica-year"', public)
+        self.assertNotIn('id="dinamica-data"', public)
 
     def image(self):
         buffer = BytesIO()
@@ -100,7 +103,7 @@ class DynamicTimelineTests(SimpleTestCase):
         return SimpleUploadedFile('foto.png', buffer.getvalue(), content_type='image/png')
 
     def publish(self, **extra):
-        data = {'year': '2026', 'month': '11', 'day': '17', 'titulo': 'Imagem', 'group': 'Eventos'}
+        data = {'data_evento': '2026-11-17', 'titulo': 'Imagem', 'group': 'Eventos'}
         data.update(extra)
         return adicionar_midia(self.request('/plataforma/midias/adicionar/timeline_dinamica/', data), 'timeline_dinamica')
 
